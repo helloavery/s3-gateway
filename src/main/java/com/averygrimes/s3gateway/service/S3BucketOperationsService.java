@@ -1,4 +1,4 @@
-package com.itavery.gateway.service;
+package com.averygrimes.s3gateway.service;
  
  /*=============================================================================
  |                Forecaster V1.0
@@ -9,5 +9,5 @@ package com.itavery.gateway.service;
  |            
  *===========================================================================*/
 
-public interface CryptoService {
+public interface S3BucketOperationsService {
 }

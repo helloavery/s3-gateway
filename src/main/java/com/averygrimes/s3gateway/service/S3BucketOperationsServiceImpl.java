@@ -1,4 +1,4 @@
-package com.itavery.gateway.service;
+package com.averygrimes.s3gateway.service;
  
  /*=============================================================================
  |                Forecaster V1.0
@@ -10,14 +10,13 @@ package com.itavery.gateway.service;
  *===========================================================================*/
 
 import com.amazonaws.SdkClientException;
-import com.averygrimes.aGateway.sdk.AGatewaySdk;
 import com.averygrimes.aGateway.sdk.model.AGatewaySdkException;
 import com.averygrimes.aGateway.sdk.model.BadRequestException;
 import com.averygrimes.aGateway.sdk.model.GetFolderItemRequest;
 import com.averygrimes.aGateway.sdk.model.GetFolderItemResult;
 import com.averygrimes.aGateway.sdk.model.PutFolderItemRequest;
 import com.averygrimes.aGateway.sdk.model.PutFolderItemResult;
-import com.itavery.gateway.config.ClientBuilder;
+import com.averygrimes.s3gateway.config.ClientBuilder;
 
 public class S3BucketOperationsServiceImpl extends ClientBuilder {
 

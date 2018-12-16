@@ -1,4 +1,4 @@
-package com.itavery.gateway.gateway;
+package com.averygrimes.s3gateway;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

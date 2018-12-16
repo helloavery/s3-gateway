@@ -1,4 +1,4 @@
-package com.itavery.gateway.config;
+package com.averygrimes.s3gateway.config;
  
  /*=============================================================================
  |                Forecaster V1.0

@@ -1,4 +1,4 @@
-package com.itavery.gateway.rest;
+package com.averygrimes.s3gateway.rest;
  
  /*=============================================================================
  |                Forecaster V1.0

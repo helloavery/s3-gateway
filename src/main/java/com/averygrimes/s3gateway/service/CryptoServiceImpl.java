@@ -1,4 +1,4 @@
-package com.itavery.gateway.service;
+package com.averygrimes.s3gateway.service;
  
  /*=============================================================================
  |                Forecaster V1.0
@@ -9,16 +9,8 @@ package com.itavery.gateway.service;
  |            
  *===========================================================================*/
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.Signature;
 
 public class CryptoServiceImpl extends KeyProvider{
