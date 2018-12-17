@@ -1,13 +1,10 @@
 package com.averygrimes.s3gateway.config;
- 
- /*=============================================================================
- |                Forecaster V1.0
- |
- |       File created by: Avery Grimes-Farrow
- |
- |       Created On:  2018-12-13            
- |            
- *===========================================================================*/
+
+/**
+ * File created by Avery Grimes-Farrow
+ * Created on: 2018-12-13
+ * https://github.com/helloavery
+ */
 
 
 import com.amazonaws.opensdk.config.ConnectionConfiguration;

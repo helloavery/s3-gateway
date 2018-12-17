@@ -1,13 +1,10 @@
 package com.averygrimes.s3gateway.service;
- 
- /*=============================================================================
- |                Forecaster V1.0
- |
- |       File created by: Avery Grimes-Farrow
- |
- |       Created On:  2018-12-16            
- |            
- *===========================================================================*/
+
+/**
+ * File created by Avery Grimes-Farrow
+ * Created on: 2018-12-16
+ * https://github.com/helloavery
+ */
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
