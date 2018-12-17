@@ -12,8 +12,10 @@ package com.averygrimes.s3gateway.service;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 
 public abstract class KeyProvider {
@@ -24,17 +26,18 @@ public abstract class KeyProvider {
     public void cryptoInit() throws Exception{
         providerInit();
         cipherGetInstance();
+        generateKey();
     }
 
     private static void providerInit() {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    private static void cipherGetInstance()) throws Exception {
+    private static void cipherGetInstance() throws NoSuchAlgorithmException, NoSuchPaddingException {
         cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
     }
 
-    private static void generateKey() {
+    private static void generateKey() throws NoSuchAlgorithmException {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
         keyPair = keyPairGenerator.generateKeyPair();

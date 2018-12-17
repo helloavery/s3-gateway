@@ -9,5 +9,14 @@ package com.averygrimes.s3gateway.service;
  |            
  *===========================================================================*/
 
+import java.io.UnsupportedEncodingException;
+import java.security.PublicKey;
+
 public interface CryptoService {
+
+    PublicKey getPublicKey();
+
+    void encryptData(String data) throws UnsupportedEncodingException;
+
+    void decryptData(byte[] data);
 }

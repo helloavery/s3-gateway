@@ -18,13 +18,14 @@ import com.averygrimes.aGateway.sdk.model.PutFolderItemRequest;
 import com.averygrimes.aGateway.sdk.model.PutFolderItemResult;
 import com.averygrimes.s3gateway.config.ClientBuilder;
 
-public class S3BucketOperationsServiceImpl extends ClientBuilder {
+public class S3BucketOperationsServiceImpl extends ClientBuilder implements S3BucketOperationsService{
 
     @Override
     public void init(){
         super.init();
     }
 
+    @Override
     public void uploadAsset(){
         try {
             PutFolderItemRequest request = new PutFolderItemRequest();
@@ -42,6 +43,7 @@ public class S3BucketOperationsServiceImpl extends ClientBuilder {
         }
     }
 
+    @Override
     public void fetchAsset(){
         try {
             GetFolderItemRequest request = new GetFolderItemRequest();

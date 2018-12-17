@@ -10,4 +10,8 @@ package com.averygrimes.s3gateway.service;
  *===========================================================================*/
 
 public interface S3BucketOperationsService {
+
+    void uploadAsset();
+
+    void fetchAsset();
 }
