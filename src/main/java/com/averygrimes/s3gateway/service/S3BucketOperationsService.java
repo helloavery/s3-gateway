@@ -1,5 +1,7 @@
 package com.averygrimes.s3gateway.service;
 
+import com.averygrimes.s3gateway.dto.S3GatewayDTO;
+
 /**
  * File created by Avery Grimes-Farrow
  * Created on: 2018-12-14
@@ -8,7 +10,7 @@ package com.averygrimes.s3gateway.service;
 
 public interface S3BucketOperationsService {
 
-    void uploadAsset();
+    void uploadAsset(S3GatewayDTO s3GatewayDTO);
 
-    void fetchAsset();
+    S3GatewayDTO fetchAsset(S3GatewayDTO s3GatewayDTO);
 }

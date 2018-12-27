@@ -6,14 +6,13 @@ package com.averygrimes.s3gateway.service;
  * https://github.com/helloavery
  */
 
-import java.io.UnsupportedEncodingException;
+import com.averygrimes.s3gateway.dto.S3GatewayDTO;
+
 import java.security.PublicKey;
 
 public interface CryptoService {
 
     PublicKey getPublicKey();
 
-    void encryptData(String data) throws UnsupportedEncodingException;
-
-    void decryptData(byte[] data);
+    S3GatewayDTO cryptoPrepareSendSecrets(String data, byte[] publicKey);
 }
