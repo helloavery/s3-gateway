@@ -2,11 +2,11 @@
 
 Securely manages the storage and retrieval of application secrets stored in S3. Acts as a proxy for application secrets retrieval (i.e. API keys) using AWS API Gateway and S3 where the secrets are stored.
 
-#Structure
+# Structure
 * Spring based application that is deployed via AWS Elastic Beanstalk
 * Acts as a proxy between the app retrieving and sending secrets and the S3 bucket(s) containing the secrets
 
-#How it works
+# How it works
 For retrieving secrets:
 * Requesting app makes an API call to S3 Gateway with the bucket, bucket object, as well an encoded Public Key from a generated key pair
 * S3 Gateway generates a signature using AWS 4 Signature SDK and returns the requested data
