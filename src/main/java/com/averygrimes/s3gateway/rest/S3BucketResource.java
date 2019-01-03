@@ -17,7 +17,7 @@ import javax.ws.rs.core.Response;
 
 
 @RestController
-@RequestMapping("/api/s3bucketOperations")
+@RequestMapping("/v1/s3bucketOperations")
 public class S3BucketResource {
 
     private S3BucketOperationsService s3BucketOperationsService;
