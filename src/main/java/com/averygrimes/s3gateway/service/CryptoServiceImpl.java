@@ -6,6 +6,7 @@ package com.averygrimes.s3gateway.service;
  * https://github.com/helloavery
  */
 
+import com.averygrimes.s3gateway.config.EhCacheManager;
 import com.averygrimes.s3gateway.dto.S3GatewayDTO;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,7 +26,7 @@ import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
 
 @Service
-public class CryptoServiceImpl implements CryptoService{
+public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
 
     private static final Logger LOGGER = LogManager.getLogger(CryptoServiceImpl.class);
 
@@ -57,6 +58,34 @@ public class CryptoServiceImpl implements CryptoService{
     }
 
     @Override
+    public byte[] generateAndReturnCachedKeyPair(Long generatedLong){
+        try{
+            cacheKeyPair(generatedLong);
+            return preConfigured.get(generatedLong).getPublic().getEncoded();
+        }
+        catch(Exception e){
+            LOGGER.error("Error generating and caching key pair");
+            throw new RuntimeException("Error generating and caching key pair", e);
+        }
+    }
+
+    @Override
+    public String cryptoPrepareSecretsS3Upload(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, Long key){
+        try{
+            byte[] decryptedData = decryptData(cipherText, true, key);
+            if(!verifySignature(encodedPubKey,decryptedData,digitalSignature)){
+                LOGGER.error("Signature verification came back as false");
+                throw new RuntimeException("Signature verification came back as false");
+            }
+            return new String(decryptedData,StandardCharsets.UTF_8);
+        }
+        catch(Exception e){
+            LOGGER.error("Error decrypting secrets to be uploaded");
+            throw new RuntimeException("Error decrypting secrets to be uploaded",e);
+        }
+    }
+
+    @Override
     public S3GatewayDTO cryptoPrepareSendSecrets(String data, byte[] publicKey){
         try{
             byte[] encryptedData = encryptData(data, publicKey);
@@ -69,6 +98,32 @@ public class CryptoServiceImpl implements CryptoService{
         }
     }
 
+    private void cacheKeyPair(Long key){
+        try{
+            super.cacheConfig();
+            generateKeyPair();
+            preConfigured.put(key,keyPair);
+        }
+        catch(Exception e){
+            LOGGER.error("Error caching KeyPair");
+            throw new RuntimeException("Error caching keypair",e);
+        }
+    }
+
+    private void getCachedKeyPair(Long key){
+        try{
+            keyPair = preConfigured.get(key);
+            if(keyPair == null){
+                LOGGER.error("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
+                throw new RuntimeException("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
+            }
+        }
+        catch(Exception e){
+            LOGGER.error("Error retrieving cached keypair");
+            throw new RuntimeException("Error retrieving cached keypair", e);
+        }
+    }
+
     private byte[] encryptData(String data, byte[] publicKey){
         try{
             LOGGER.info("Encrypting retrieved secrets");
@@ -78,16 +133,25 @@ public class CryptoServiceImpl implements CryptoService{
             return cipher.doFinal(dataInBytes);
         }
         catch(Exception e){
-            LOGGER.error("Error encrypted retrieved secrets");
+            LOGGER.error("Error encrypting retrieved secrets");
             throw new RuntimeException("Error encrypted retrieved secrets",e);
         }
     }
 
-    private void decryptData(byte[] data){
-        //cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
-        //cipher.update(data);
-        //cipher.doFinal(data);
-
+    private byte[] decryptData(byte[] data, boolean forCachedKeyPair, Long key){
+        try{
+            LOGGER.info("decrypting secrets");
+            if(forCachedKeyPair){
+                getCachedKeyPair(key);
+            }
+            cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
+            cipher.update(data);
+            return cipher.doFinal(data);
+        }
+        catch(Exception e){
+            LOGGER.error("Error decrypting secrets");
+            throw new RuntimeException("Error decrypting retrieved secrets",e);
+        }
     }
 
     private byte[] generateSignature(byte[] data) throws Exception{
@@ -105,12 +169,18 @@ public class CryptoServiceImpl implements CryptoService{
         }
     }
 
-    private boolean verifySignature() throws Exception{
-        Signature signature = Signature.getInstance(SHA256);
-        //signature.initVerify();
-        //signature.update();
-        //return signature.verify();
-        return false;
+    private boolean verifySignature(byte[] encodedPubKey, byte[] data, byte[] digitalSignature) throws Exception{
+        try{
+            LOGGER.info("Verifying signature retrieved from requesting app");
+            PublicKey publicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(encodedPubKey));
+            signature.initVerify(publicKey);
+            signature.update(data);
+            return signature.verify(digitalSignature);
+        }
+        catch(Exception e){
+            LOGGER.error("Error verifying signature");
+            throw e;
+        }
     }
 
     private void generateKeyPair(){

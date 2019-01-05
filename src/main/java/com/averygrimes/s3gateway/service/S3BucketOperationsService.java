@@ -10,7 +10,7 @@ import com.averygrimes.s3gateway.dto.S3GatewayDTO;
 
 public interface S3BucketOperationsService {
 
-    void uploadAsset(S3GatewayDTO s3GatewayDTO);
+    boolean uploadAsset(S3GatewayDTO s3GatewayDTO);
 
     S3GatewayDTO fetchAsset(S3GatewayDTO s3GatewayDTO);
 }

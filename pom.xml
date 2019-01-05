@@ -16,6 +16,7 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<agateway-version>1.1.2</agateway-version>
+		<s3gateway-sdk-version>1.0.0</s3gateway-sdk-version>
 		<aws-sdk-version>1.11.466</aws-sdk-version>
 		<bouncy-castle-version>1.60</bouncy-castle-version>
 		<spring-boot-version>2.1.0.RELEASE</spring-boot-version>
@@ -78,6 +79,11 @@
 			<groupId>com.averygrimes.sdk</groupId>
 			<artifactId>api-gateway-sdk</artifactId>
 			<version>${agateway-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.averygrimes.sdk</groupId>
+			<artifactId>s3-gateway-sdk</artifactId>
+			<version>${s3gateway-sdk-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>

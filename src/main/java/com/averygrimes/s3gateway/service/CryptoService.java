@@ -12,6 +12,10 @@ import java.security.PublicKey;
 
 public interface CryptoService {
 
+    byte[] generateAndReturnCachedKeyPair(Long key);
+
+    String cryptoPrepareSecretsS3Upload(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, Long key);
+
     PublicKey getPublicKey();
 
     S3GatewayDTO cryptoPrepareSendSecrets(String data, byte[] publicKey);

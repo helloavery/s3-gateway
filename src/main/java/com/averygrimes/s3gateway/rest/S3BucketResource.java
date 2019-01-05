@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.ws.rs.core.Response;
-
 
 @RestController
 @RequestMapping("/v1/s3bucketOperations")
@@ -26,9 +24,9 @@ public class S3BucketResource {
         this.s3BucketOperationsService = s3BucketOperationsService;
     }
 
-    @RequestMapping(value = "/addItemRequest", method = RequestMethod.POST)
-    public Response addItemRequest(){
-        return null;
+    @RequestMapping(value = "/uploadAsset", method = RequestMethod.POST)
+    public boolean uploadAsset(@RequestBody S3GatewayDTO s3GatewayDTO){
+        return s3BucketOperationsService.uploadAsset(s3GatewayDTO);
 
     }
 
