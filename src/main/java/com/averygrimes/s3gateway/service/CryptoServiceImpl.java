@@ -6,50 +6,67 @@ package com.averygrimes.s3gateway.service;
  * https://github.com/helloavery
  */
 
+import com.averygrimes.s3gateway.KeyType;
 import com.averygrimes.s3gateway.config.EhCacheManager;
 import com.averygrimes.s3gateway.dto.S3GatewayDTO;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.ehcache.Cache;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.UUID;
 
 @Service
-public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
+public class CryptoServiceImpl<T> implements CryptoService{
 
     private static final Logger LOGGER = LogManager.getLogger(CryptoServiceImpl.class);
 
+    private EhCacheManager ehCacheManager;
+    private Cache<String, SecretKey> secretKeyCache;
+    private Cache<String, KeyPair> keyPairCache;
     private Cipher cipher;
+    private KeyGenerator keyGenerator;
     private KeyPairGenerator keyPairGenerator;
     private KeyPair keyPair;
+    private SecretKey secretKey;
     private Signature signature;
     private static final String RSA = "RSA";
-    private static final String DSA = "DSA";
+    private static final String AES = "AES";
     private static final String AES_CBC_PKCS5PADDING = "AES/CBC/PKCS5Padding";
     private static final String SHA256 = "SHA256WithRSA";
 
-    public CryptoServiceImpl(){
+    @Inject
+    public CryptoServiceImpl(EhCacheManager ehCacheManager){
+        this.ehCacheManager = ehCacheManager;
         this.setup();
     }
 
     private void setup(){
         try{
             Security.addProvider(new BouncyCastleProvider());
-            this.cipher = Cipher.getInstance(RSA);
+            this.keyGenerator = KeyGenerator.getInstance(AES);
             this.keyPairGenerator = KeyPairGenerator.getInstance(RSA);
             this.keyPairGenerator.initialize(2048);
             this.signature = Signature.getInstance(SHA256);
+            this.secretKeyCache = ehCacheManager.getSecretKeyCache();
+            this.keyPairCache = ehCacheManager.getKeyPairCache();
         }
         catch(Exception e){
             LOGGER.error("Error setting up and initializing service");
@@ -58,10 +75,21 @@ public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
     }
 
     @Override
-    public byte[] generateAndReturnCachedKeyPair(Long generatedLong){
+    public S3GatewayDTO generateSymmetricKey(byte[] publicKey) {
         try{
-            cacheKeyPair(generatedLong);
-            return preConfigured.get(generatedLong).getPublic().getEncoded();
+            String secretKeyUUID = generateUUID();
+            String keyPairUUID = generateUUID();
+            generateSecretKey();
+            generateKeyPair();
+            cacheSecretKey(secretKeyUUID, secretKey);
+            cacheKeyPair(keyPairUUID, keyPair);
+            PublicKey decodedPublicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(publicKey));
+            byte[] encryptedSymmetricKey = encryptSymmetricKey(secretKey, decodedPublicKey);
+            S3GatewayDTO response = new S3GatewayDTO();
+            response.setSymmetricKeyUUID(secretKeyUUID);
+            response.setSymmetricKey(encryptedSymmetricKey);
+            response.setKeyPairUUID(keyPairUUID);
+            return response;
         }
         catch(Exception e){
             LOGGER.error("Error generating and caching key pair");
@@ -70,10 +98,30 @@ public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
     }
 
     @Override
-    public String cryptoPrepareSecretsS3Upload(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, Long key){
+    public S3GatewayDTO encryptAndSendSecrets(String data, String secretKeyUUID){
         try{
-            byte[] decryptedData = decryptData(cipherText, true, key);
-            if(!verifySignature(encodedPubKey,decryptedData,digitalSignature)){
+            getCachedKey(secretKeyUUID, KeyType.SECRET_KEY);
+            byte[] encryptedData = encryptData(data, secretKey);
+            byte[] generatedSignature = generateSignature(data.getBytes(StandardCharsets.UTF_8));
+            S3GatewayDTO response = new S3GatewayDTO();
+            response.setCipherText(encryptedData);
+            response.setSignature(generatedSignature);
+            response.setPublicKey(getPublicKey().getEncoded());
+            return response;
+        }
+        catch(Exception e){
+            LOGGER.error("Error encrypting secrets and generating signature");
+            throw new RuntimeException("Error encrypting secrets and generating signature",e);
+        }
+    }
+
+    @Override
+    public String decryptAndUploadSecrets(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, String UUID){
+        try{
+            getCachedKey(UUID, KeyType.SECRET_KEY);
+            byte[] decryptedData = decryptData(cipherText, secretKey);
+            PublicKey decodedPublicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(encodedPubKey));
+            if(!verifySignature(decodedPublicKey,decryptedData,digitalSignature)){
                 LOGGER.error("Signature verification came back as false");
                 throw new RuntimeException("Signature verification came back as false");
             }
@@ -86,23 +134,21 @@ public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
     }
 
     @Override
-    public S3GatewayDTO cryptoPrepareSendSecrets(String data, byte[] publicKey){
+    public byte[] generateAndReturnCachedKeyPair(Long generatedLong){
         try{
-            byte[] encryptedData = encryptData(data, publicKey);
-            byte[] generatedSignature = generateSignature(data.getBytes(StandardCharsets.UTF_8));
-            return new S3GatewayDTO(encryptedData, getPublicKey().getEncoded(), generatedSignature);
+            cacheKeyPair(null, null);
+            return null;
+            //return cachePreConfigured.get(generatedLong).getPublic().getEncoded();
         }
         catch(Exception e){
-            LOGGER.error("Error encrypting secrets and generating signature");
-            throw new RuntimeException("Error encrypting secrets and generating signature",e);
+            LOGGER.error("Error generating and caching key pair");
+            throw new RuntimeException("Error generating and caching key pair", e);
         }
     }
 
-    private void cacheKeyPair(Long key){
+    private void cacheKeyPair(String key, KeyPair keyPair){
         try{
-            super.cacheConfig();
-            generateKeyPair();
-            preConfigured.put(key,keyPair);
+            keyPairCache.put(key, keyPair);
         }
         catch(Exception e){
             LOGGER.error("Error caching KeyPair");
@@ -110,25 +156,46 @@ public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
         }
     }
 
-    private void getCachedKeyPair(Long key){
+    private void cacheSecretKey(String key, SecretKey secretKey){
         try{
-            keyPair = preConfigured.get(key);
-            if(keyPair == null){
-                LOGGER.error("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
-                throw new RuntimeException("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
-            }
+            secretKeyCache.put(key,secretKey);
         }
         catch(Exception e){
-            LOGGER.error("Error retrieving cached keypair");
-            throw new RuntimeException("Error retrieving cached keypair", e);
+            LOGGER.error("Error caching KeyPair");
+            throw new RuntimeException("Error caching keypair",e);
         }
     }
 
-    private byte[] encryptData(String data, byte[] publicKey){
+    private void getCachedKey(String UUID, KeyType keyType){
+        try{
+            switch(keyType){
+                case KEYPAIR:
+                    keyPair = keyPairCache.get(UUID);
+                    if(keyPair == null){
+                        LOGGER.error("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
+                        throw new RuntimeException("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
+                    }
+                    break;
+                case SECRET_KEY:
+                    secretKey = secretKeyCache.get(UUID);
+                    if(secretKey == null){
+                        LOGGER.error("SecretKey not found! Either incorrect cache key passed or secret key cache expired");
+                        throw new RuntimeException("SecretKey not found! Either incorrect cache key passed or secret key cache expired");
+                    }
+                    break;
+            }
+        }
+        catch(Exception e){
+            LOGGER.error("Error retrieving cached key");
+            throw new RuntimeException("Error retrieving cached key", e);
+        }
+    }
+
+    private byte[] encryptData(String data, SecretKey secretKey){
         try{
             LOGGER.info("Encrypting retrieved secrets");
-            PublicKey decodedPublicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(publicKey));
-            cipher.init(Cipher.ENCRYPT_MODE, decodedPublicKey);
+            cipher = Cipher.getInstance(AES);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
             byte[] dataInBytes = data.getBytes(StandardCharsets.UTF_8);
             return cipher.doFinal(dataInBytes);
         }
@@ -138,14 +205,37 @@ public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
         }
     }
 
-    private byte[] decryptData(byte[] data, boolean forCachedKeyPair, Long key){
+    private byte[] encryptSymmetricKey(SecretKey secretKey, PublicKey publicKey){
+        try{
+            LOGGER.info("Encrypting symmetric key");
+            cipher = Cipher.getInstance(RSA);
+            cipher.init(Cipher.WRAP_MODE, publicKey);
+            return cipher.wrap(secretKey);
+        }
+        catch(Exception e){
+            LOGGER.error("Error encrypting retrieved secrets");
+            throw new RuntimeException("Error encrypted retrieved secrets",e);
+        }
+    }
+
+    private SecretKey decryptSymmetricKey(byte[] encryptedSecretKey, PublicKey publicKey){
+        try{
+            LOGGER.info("Decrypting symmetric key");
+            cipher = Cipher.getInstance(RSA);
+            cipher.init(Cipher.UNWRAP_MODE, publicKey);
+            return (SecretKey) cipher.unwrap(encryptedSecretKey,AES, Cipher.SECRET_KEY);
+        }
+        catch(Exception e){
+            LOGGER.error("Error encrypting retrieved secrets");
+            throw new RuntimeException("Error encrypted retrieved secrets",e);
+        }
+    }
+
+    private byte[] decryptData(byte[] data, SecretKey secretKey){
         try{
             LOGGER.info("decrypting secrets");
-            if(forCachedKeyPair){
-                getCachedKeyPair(key);
-            }
-            cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
-            cipher.update(data);
+            cipher = Cipher.getInstance(AES);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
             return cipher.doFinal(data);
         }
         catch(Exception e){
@@ -169,10 +259,9 @@ public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
         }
     }
 
-    private boolean verifySignature(byte[] encodedPubKey, byte[] data, byte[] digitalSignature) throws Exception{
+    private boolean verifySignature(PublicKey publicKey, byte[] data, byte[] digitalSignature) throws Exception{
         try{
             LOGGER.info("Verifying signature retrieved from requesting app");
-            PublicKey publicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(encodedPubKey));
             signature.initVerify(publicKey);
             signature.update(data);
             return signature.verify(digitalSignature);
@@ -183,17 +272,37 @@ public class CryptoServiceImpl extends EhCacheManager implements CryptoService{
         }
     }
 
+    private void generateSecretKey(){
+        try{
+            secretKey = keyGenerator.generateKey();
+        }
+        catch(Exception e){
+            LOGGER.error("Error generating symmetric secret key");
+            throw e;
+        }
+    }
+
     private void generateKeyPair(){
         LOGGER.info("Generating new key pair");
         keyPair = keyPairGenerator.generateKeyPair();
     }
 
-    @Override
-    public PublicKey getPublicKey(){
+    private PublicKey getPublicKey(){
         return keyPair.getPublic();
     }
 
     private PrivateKey getPrivateKey(){
         return keyPair.getPrivate();
+    }
+
+    private String generateUUID() {
+        try {
+            MessageDigest salt = MessageDigest.getInstance("SHA-256");
+            salt.update(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+            return Hex.encodeHexString(salt.digest());
+        } catch (Exception e) {
+            LOGGER.error("Error generating new UUID");
+            throw new RuntimeException("Error generating new UUID", e);
+        }
     }
 }

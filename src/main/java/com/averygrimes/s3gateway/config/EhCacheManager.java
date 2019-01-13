@@ -4,7 +4,9 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.ExpiryPolicyBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.time.Duration;
 
@@ -17,23 +19,39 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
  * https://github.com/helloavery
  */
 
-public abstract class EhCacheManager {
+@Component
+public class EhCacheManager{
 
-    protected Cache<Long,KeyPair> preConfigured;
+    private Cache<String, SecretKey> secretKeyCache;
+    private Cache<String, KeyPair> keyPairCache;
 
-    protected void cacheConfig(){
-        try(CacheManager cacheManager = newCacheManagerBuilder()
-                .withCache("preConfiguredCache", newCacheConfigurationBuilder(Long.class, KeyPair.class, ResourcePoolsBuilder.heap(10))
-                .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(20))))
-                .build(true)){
-
-            preConfigured = cacheManager.getCache("preConfiguredCache", Long.class, KeyPair.class);
-
-            cacheManager.removeCache("preConfiguredCache");
-        }
+    public EhCacheManager(){
+        this.cacheConfig();
     }
 
-    public void tearDown(){
+    private void cacheConfig (){
+        CacheManager secretKeyCacheManager = newCacheManagerBuilder()
+                .withCache("secretKeyCache", newCacheConfigurationBuilder(String.class, SecretKey.class, ResourcePoolsBuilder.heap(10))
+                        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(20))))
+                .build(true);
+        secretKeyCache = secretKeyCacheManager.getCache("secretKeyCache", String.class, SecretKey.class);
+        CacheManager keyPairCacheManager = newCacheManagerBuilder()
+                .withCache("keyPairCache", newCacheConfigurationBuilder(String.class, KeyPair.class, ResourcePoolsBuilder.heap(10))
+                        .withExpiry(ExpiryPolicyBuilder.timeToLiveExpiration(Duration.ofSeconds(20))))
+                .build(true);
+        keyPairCache = keyPairCacheManager.getCache("keyPairCache", String.class, KeyPair.class);
+    }
 
+    public void tearDown(CacheManager cacheManager){
+        cacheManager.removeCache("secretKeyCache");
+        cacheManager.close();
+    }
+
+    public Cache<String, SecretKey> getSecretKeyCache() {
+        return this.secretKeyCache;
+    }
+
+    public Cache<String, KeyPair> getKeyPairCache() {
+        return this.keyPairCache;
     }
 }

@@ -1,5 +1,6 @@
 package com.averygrimes.s3gateway.rest;
 
+import com.averygrimes.s3gateway.dto.S3GatewayDTO;
 import com.averygrimes.s3gateway.service.CryptoService;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +21,11 @@ public class CryptoResource {
 
     public CryptoResource(CryptoService cryptoService){
         this.cryptoService = cryptoService;
+    }
+
+    @RequestMapping(value = "/generateSymmetricKey", method = RequestMethod.POST)
+    public S3GatewayDTO addItemRequest(@RequestBody byte[] publicKey){
+        return cryptoService.generateSymmetricKey(publicKey);
     }
 
     @RequestMapping(value = "/requestPubKey", method = RequestMethod.POST)

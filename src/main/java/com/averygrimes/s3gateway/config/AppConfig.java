@@ -41,7 +41,7 @@ public class AppConfig {
     public RestTemplate restTemplate(){
         RestTemplate restTemplate = new RestTemplate(new SimpleClientHttpRequestFactory());
         MappingJackson2HttpMessageConverter messageConverter = new MappingJackson2HttpMessageConverter();
-        messageConverter.setSupportedMediaTypes(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML));
+        messageConverter.setSupportedMediaTypes(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN));
         restTemplate.getMessageConverters().add(messageConverter);
         return restTemplate;
     }

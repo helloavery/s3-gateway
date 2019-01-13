@@ -8,15 +8,13 @@ package com.averygrimes.s3gateway.service;
 
 import com.averygrimes.s3gateway.dto.S3GatewayDTO;
 
-import java.security.PublicKey;
-
 public interface CryptoService {
 
+    S3GatewayDTO generateSymmetricKey(byte[] publicKey);
+
+    S3GatewayDTO encryptAndSendSecrets(String data, String secretKeyUUID);
+
+    String decryptAndUploadSecrets(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, String UUID);
+
     byte[] generateAndReturnCachedKeyPair(Long key);
-
-    String cryptoPrepareSecretsS3Upload(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, Long key);
-
-    PublicKey getPublicKey();
-
-    S3GatewayDTO cryptoPrepareSendSecrets(String data, byte[] publicKey);
 }

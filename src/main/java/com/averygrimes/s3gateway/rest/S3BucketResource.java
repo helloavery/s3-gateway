@@ -24,7 +24,7 @@ public class S3BucketResource {
         this.s3BucketOperationsService = s3BucketOperationsService;
     }
 
-    @RequestMapping(value = "/uploadAsset", method = RequestMethod.POST)
+    @RequestMapping(value = "/uploadAsset", method = RequestMethod.POST, consumes = {"application/json","text/plain"})
     public boolean uploadAsset(@RequestBody S3GatewayDTO s3GatewayDTO){
         return s3BucketOperationsService.uploadAsset(s3GatewayDTO);
 

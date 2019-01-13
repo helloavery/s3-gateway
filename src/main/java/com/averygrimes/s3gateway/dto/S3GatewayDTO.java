@@ -15,8 +15,10 @@ public class S3GatewayDTO {
 
     private String bucket;
     private String bucketObject;
-    private long ehcacheVariable;
+    private String symmetricKeyUUID;
+    private byte[] symmetricKey;
     private byte[] cipherText;
+    private String keyPairUUID;
     private byte[] publicKey;
     private byte[] signature;
 
@@ -24,51 +26,68 @@ public class S3GatewayDTO {
         super();
     }
 
-    public S3GatewayDTO(String bucket, String bucketObject, long ehcacheVariable, byte[] cipherText, byte[] publicKey, byte[] signature){
-        this.bucket = bucket;
-        this.bucketObject = bucketObject;
-        this.ehcacheVariable = ehcacheVariable;
-        this.cipherText = cipherText;
-        this.publicKey = publicKey;
-        this.signature = signature;
-    }
-
-    public S3GatewayDTO(byte[] cipherText, byte[] publicKey, byte[] signature){
-        this.cipherText = cipherText;
-        this.publicKey = publicKey;
-        this.signature = signature;
-    }
-
-    public S3GatewayDTO(String bucket, String bucketObject, long ehcacheVariable, byte[] cipherText){
-        this.bucket = bucket;
-        this.bucketObject = bucketObject;
-        this.ehcacheVariable = ehcacheVariable;
-        this.cipherText = cipherText;
-    }
-
     public String getBucket() {
         return bucket;
     }
 
+    public void setBucket(String bucket) {
+        this.bucket = bucket;
+    }
 
     public String getBucketObject() {
         return bucketObject;
     }
 
-    public long getEhcacheVariable() {
-        return ehcacheVariable;
+    public void setBucketObject(String bucketObject) {
+        this.bucketObject = bucketObject;
+    }
+
+    public String getSymmetricKeyUUID() {
+        return symmetricKeyUUID;
+    }
+
+    public void setSymmetricKeyUUID(String symmetricKeyUUID) {
+        this.symmetricKeyUUID = symmetricKeyUUID;
+    }
+
+    public byte[] getSymmetricKey() {
+        return symmetricKey;
+    }
+
+    public void setSymmetricKey(byte[] symmetricKey) {
+        this.symmetricKey = symmetricKey;
     }
 
     public byte[] getCipherText() {
         return cipherText;
     }
 
+    public void setCipherText(byte[] cipherText) {
+        this.cipherText = cipherText;
+    }
+
+    public String getKeyPairUUID() {
+        return keyPairUUID;
+    }
+
+    public void setKeyPairUUID(String keyPairUUID) {
+        this.keyPairUUID = keyPairUUID;
+    }
+
     public byte[] getPublicKey() {
         return publicKey;
     }
 
+    public void setPublicKey(byte[] publicKey) {
+        this.publicKey = publicKey;
+    }
+
     public byte[] getSignature() {
         return signature;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
     }
 
 }

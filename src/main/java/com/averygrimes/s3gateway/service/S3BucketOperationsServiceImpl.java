@@ -6,8 +6,8 @@ package com.averygrimes.s3gateway.service;
  * https://github.com/helloavery
  */
 
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.DefaultRequest;
-import com.amazonaws.SignableRequest;
 import com.amazonaws.auth.AWS4Signer;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -25,7 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import software.amazon.awssdk.regions.Region;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class S3BucketOperationsServiceImpl implements S3BucketOperationsService{
@@ -50,14 +52,14 @@ public class S3BucketOperationsServiceImpl implements S3BucketOperationsService{
     @Override
     public boolean uploadAsset(S3GatewayDTO s3GatewayDTO) {
         try {
-            SignableRequest signedRequest = createAWSSignature(s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
+            String requestBody = cryptoService.decryptAndUploadSecrets(s3GatewayDTO.getCipherText(), s3GatewayDTO.getPublicKey(), s3GatewayDTO.getSignature(), s3GatewayDTO.getSymmetricKeyUUID());
+            String requestUrl = String.format(S3_API_ENDPOINT + API_GATEWAY_STAGE + S3_OBJECT_ENDPOINT, s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
+            DefaultRequest signedRequest = createAWSSignature(s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject(), HttpMethod.PUT, requestBody);
             if (signedRequest == null) {
                 LOGGER.error("Error generating AWS Signature");
                 throw new AWSSignatureException("Error generating AWS Signature");
             }
-            String requestBody = cryptoService.cryptoPrepareSecretsS3Upload(s3GatewayDTO.getCipherText(), s3GatewayDTO.getPublicKey(), s3GatewayDTO.getSignature(), s3GatewayDTO.getEhcacheVariable());
-            String requestUrl = String.format(S3_API_ENDPOINT + API_GATEWAY_STAGE + S3_OBJECT_ENDPOINT, s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
-            HttpHeaders headers = generateHeaders(signedRequest);
+            HttpHeaders headers = generateHeaders(signedRequest, HttpMethod.PUT, requestBody.length());
             HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
             ResponseEntity<String> responseEntity = restTemplate.exchange(requestUrl, HttpMethod.PUT, request, String.class);
             if(!responseEntity.getStatusCode().is2xxSuccessful()){
@@ -76,20 +78,20 @@ public class S3BucketOperationsServiceImpl implements S3BucketOperationsService{
     @Override
     public S3GatewayDTO fetchAsset(S3GatewayDTO s3GatewayDTO){
         try {
-            SignableRequest signedRequest = createAWSSignature(s3GatewayDTO.getBucket(),s3GatewayDTO.getBucketObject());
+            DefaultRequest signedRequest = createAWSSignature(s3GatewayDTO.getBucket(),s3GatewayDTO.getBucketObject(), HttpMethod.GET,null);
             if(signedRequest == null){
                 LOGGER.error("Error generating AWS Signature");
                 throw new AWSSignatureException("Error generating AWS Signature");
             }
             String requestUrl = String.format(S3_API_ENDPOINT + API_GATEWAY_STAGE + S3_OBJECT_ENDPOINT, s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
-            HttpHeaders headers = generateHeaders(signedRequest);
+            HttpHeaders headers = generateHeaders(signedRequest, HttpMethod.GET, null);
             HttpEntity<?> request = new HttpEntity<>(headers);
             ResponseEntity<String> responseEntity = restTemplate.exchange(requestUrl, HttpMethod.GET, request, String.class);
             if(responseEntity == null || responseEntity.getBody() == null){
                 LOGGER.error("Error retrieving secrets for bucket {} and object {}", s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
                 throw new RuntimeException("Error retrieving secrets");
             }
-            return cryptoService.cryptoPrepareSendSecrets(responseEntity.getBody(),s3GatewayDTO.getPublicKey());
+            return cryptoService.encryptAndSendSecrets(responseEntity.getBody(),s3GatewayDTO.getSymmetricKeyUUID());
         }
         catch(Exception e) {
             LOGGER.error("Error fetching secrets for bucket {} and object {}", s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
@@ -97,13 +99,30 @@ public class S3BucketOperationsServiceImpl implements S3BucketOperationsService{
         }
     }
 
-    private HttpHeaders generateHeaders(SignableRequest signedRequest){
+    private HttpHeaders generateHeaders(DefaultRequest signedRequest, HttpMethod httpMethod, Integer contentLength){
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add("Host", signedRequest.getHeaders().get("Host").toString());
-        headers.add("X-Amz-Date", signedRequest.getHeaders().get("X-Amz-Date").toString());
-        headers.add("Authorization", signedRequest.getHeaders().get("Authorization").toString());
-        headers.add("cache-control", "no-cache");
+        switch(httpMethod){
+            case GET:
+                headers.add("Host", signedRequest.getHeaders().get("Host").toString());
+                headers.add("X-Amz-Date", signedRequest.getHeaders().get("X-Amz-Date").toString());
+                headers.add("Authorization", signedRequest.getHeaders().get("Authorization").toString());
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                break;
+            case PUT:
+                headers.add("Host", signedRequest.getHeaders().get("Host").toString());
+                headers.add("X-Amz-Date", signedRequest.getHeaders().get("X-Amz-Date").toString());
+                headers.add("Authorization", signedRequest.getHeaders().get("Authorization").toString());
+                headers.setContentType(MediaType.TEXT_PLAIN);
+                headers.add("Content-Length", String.valueOf(contentLength));
+                headers.add("cache-control", "no-cache");
+                break;
+            default:
+                headers.add("Host", signedRequest.getHeaders().get("Host").toString());
+                headers.add("X-Amz-Date", signedRequest.getHeaders().get("X-Amz-Date").toString());
+                headers.add("Authorization", signedRequest.getHeaders().get("Authorization").toString());
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                break;
+        }
         return headers;
     }
 
@@ -112,17 +131,32 @@ public class S3BucketOperationsServiceImpl implements S3BucketOperationsService{
         return new ProfileCredentialsProvider("default");
     }
 
-    private SignableRequest createAWSSignature(String bucket, String bucketObject){
+    private DefaultRequest createAWSSignature(String bucket, String bucketObject, HttpMethod httpMethod, String content){
         try{
             LOGGER.info("Generating AWS Signature for bucket {} and object {}", bucket, bucketObject);
+            AmazonWebServiceRequest amazonWebServiceRequest = new AmazonWebServiceRequest() {};
             AWS4Signer aws4Signer = new AWS4Signer();
             aws4Signer.setRegionName(Region.US_EAST_2.toString());
             aws4Signer.setEndpointPrefix(S3_API_ENDPOINT);
             aws4Signer.setServiceName("execute-api");
-            SignableRequest request = new DefaultRequest("execute-api");
-            ((DefaultRequest) request).setResourcePath(String.format(API_GATEWAY_STAGE+S3_OBJECT_ENDPOINT,bucket,bucketObject));
-            ((DefaultRequest) request).setHttpMethod(HttpMethodName.GET);
-            ((DefaultRequest) request).setEndpoint(URI.create(S3_API_ENDPOINT));
+            DefaultRequest request = new DefaultRequest(amazonWebServiceRequest, "execute-api");
+            request.setResourcePath(String.format(API_GATEWAY_STAGE+S3_OBJECT_ENDPOINT,bucket,bucketObject));
+            switch (httpMethod) {
+                case GET:
+                    request.setHttpMethod(HttpMethodName.GET);
+                    break;
+                case PUT:
+                    request.setHttpMethod(HttpMethodName.PUT);
+                    request.addHeader("Content-Type", "text/plain");
+                    request.addHeader("cache-control", "no-cache");
+                    request.addHeader("Content-Length", String.valueOf(content.length()));
+                    request.setContent(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+                    break;
+                default:
+                    request.setHttpMethod(HttpMethodName.GET);
+                    break;
+            }
+            request.setEndpoint(URI.create(S3_API_ENDPOINT));
             aws4Signer.sign(request,iamCredentialsSetup().getCredentials());
             return request;
         }
