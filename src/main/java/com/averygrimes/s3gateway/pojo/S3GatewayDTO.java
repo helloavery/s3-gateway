@@ -1,10 +1,10 @@
-package com.averygrimes.s3gateway.dto;
+package com.averygrimes.s3gateway.pojo;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * File created by Avery Grimes-Farrow
+ * @author Avery Grimes-Farrow
  * Created on: 2018-12-18
  * https://github.com/helloavery
  */

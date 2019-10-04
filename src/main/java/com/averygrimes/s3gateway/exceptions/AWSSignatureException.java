@@ -1,7 +1,7 @@
 package com.averygrimes.s3gateway.exceptions;
 
 /**
- * File created by Avery Grimes-Farrow
+ * @author Avery Grimes-Farrow
  * Created on: 2018-12-24
  * https://github.com/helloavery
  */

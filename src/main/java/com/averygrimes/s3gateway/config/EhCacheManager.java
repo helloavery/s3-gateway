@@ -14,7 +14,7 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 
 /**
- * File created by Avery Grimes-Farrow
+ * @author Avery Grimes-Farrow
  * Created on: 2018-12-17
  * https://github.com/helloavery
  */

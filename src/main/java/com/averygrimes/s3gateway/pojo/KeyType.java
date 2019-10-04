@@ -1,7 +1,7 @@
-package com.averygrimes.s3gateway;
+package com.averygrimes.s3gateway.pojo;
 
 /**
- * File created by Avery Grimes-Farrow
+ * @author Avery Grimes-Farrow
  * Created on: 2019-01-12
  * https://github.com/helloavery
  */
