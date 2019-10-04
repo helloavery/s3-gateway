@@ -17,7 +17,7 @@ public class AppConfig {
     @Bean
     public PropertyPlaceholderConfigurer getPropertyPlaceholderConfigurer() {
         PropertyPlaceholderConfigurer ppc = new PropertyPlaceholderConfigurer();
-        ppc.setLocations(new ClassPathResource("application.properties"));
+        ppc.setLocations(new ClassPathResource("application.yml"));
         ppc.setIgnoreUnresolvablePlaceholders(true);
         return ppc;
     }
