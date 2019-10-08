@@ -7,7 +7,6 @@ package com.averygrimes.s3gateway.service;
  */
 
 import com.averygrimes.s3gateway.config.EhCacheManager;
-import com.averygrimes.s3gateway.pojo.KeyType;
 import com.averygrimes.s3gateway.pojo.S3GatewayDTO;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +15,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.ehcache.Cache;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -34,7 +34,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.UUID;
 
 @Service
-public class CryptoServiceImpl<T> implements CryptoService{
+public class CryptoServiceImpl implements CryptoService{
 
     private static final Logger LOGGER = LogManager.getLogger(CryptoServiceImpl.class);
 
@@ -55,10 +55,10 @@ public class CryptoServiceImpl<T> implements CryptoService{
     @Inject
     public CryptoServiceImpl(EhCacheManager ehCacheManager){
         this.ehCacheManager = ehCacheManager;
-        this.setup();
     }
 
-    private void setup(){
+    @PostConstruct
+    private void init(){
         try{
             Security.addProvider(new BouncyCastleProvider());
             this.keyGenerator = KeyGenerator.getInstance(AES);
@@ -81,8 +81,8 @@ public class CryptoServiceImpl<T> implements CryptoService{
             String keyPairUUID = generateUUID();
             generateSecretKey();
             generateKeyPair();
-            cacheSecretKey(secretKeyUUID, secretKey);
-            cacheKeyPair(keyPairUUID, keyPair);
+            cacheObject(secretKeyCache, secretKeyUUID, secretKey);
+            cacheObject(keyPairCache, keyPairUUID, keyPair);
             PublicKey decodedPublicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(publicKey));
             byte[] encryptedSymmetricKey = encryptSymmetricKey(secretKey, decodedPublicKey);
             S3GatewayDTO response = new S3GatewayDTO();
@@ -100,7 +100,7 @@ public class CryptoServiceImpl<T> implements CryptoService{
     @Override
     public S3GatewayDTO encryptAndSendSecrets(String data, String secretKeyUUID){
         try{
-            getCachedKey(secretKeyUUID, KeyType.SECRET_KEY);
+            secretKey = getObjectFromCache(secretKeyCache, secretKeyUUID);
             byte[] encryptedData = encryptData(data, secretKey);
             byte[] generatedSignature = generateSignature(data.getBytes(StandardCharsets.UTF_8));
             S3GatewayDTO response = new S3GatewayDTO();
@@ -118,7 +118,7 @@ public class CryptoServiceImpl<T> implements CryptoService{
     @Override
     public String decryptAndUploadSecrets(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, String UUID){
         try{
-            getCachedKey(UUID, KeyType.SECRET_KEY);
+            keyPair = getObjectFromCache(keyPairCache, UUID);
             byte[] decryptedData = decryptData(cipherText, secretKey);
             PublicKey decodedPublicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(encodedPubKey));
             if(!verifySignature(decodedPublicKey,decryptedData,digitalSignature)){
@@ -133,63 +133,14 @@ public class CryptoServiceImpl<T> implements CryptoService{
         }
     }
 
-    @Override
-    public byte[] generateAndReturnCachedKeyPair(Long generatedLong){
-        try{
-            cacheKeyPair(null, null);
-            return null;
-            //return cachePreConfigured.get(generatedLong).getPublic().getEncoded();
-        }
-        catch(Exception e){
-            LOGGER.error("Error generating and caching key pair");
-            throw new RuntimeException("Error generating and caching key pair", e);
-        }
+    private <T> void cacheObject(Cache<String, T> cacheObject, String key, T value){
+        cacheObject.put(key, value);
     }
 
-    private void cacheKeyPair(String key, KeyPair keyPair){
-        try{
-            keyPairCache.put(key, keyPair);
-        }
-        catch(Exception e){
-            LOGGER.error("Error caching KeyPair");
-            throw new RuntimeException("Error caching keypair",e);
-        }
+    private <T> T getObjectFromCache(Cache<String, T> cacheObject, String key){
+        return cacheObject.get(key);
     }
 
-    private void cacheSecretKey(String key, SecretKey secretKey){
-        try{
-            secretKeyCache.put(key,secretKey);
-        }
-        catch(Exception e){
-            LOGGER.error("Error caching KeyPair");
-            throw new RuntimeException("Error caching keypair",e);
-        }
-    }
-
-    private void getCachedKey(String UUID, KeyType keyType){
-        try{
-            switch(keyType){
-                case KEYPAIR:
-                    keyPair = keyPairCache.get(UUID);
-                    if(keyPair == null){
-                        LOGGER.error("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
-                        throw new RuntimeException("KeyPair not found! Either incorrect cache key passed or keypair cache expired");
-                    }
-                    break;
-                case SECRET_KEY:
-                    secretKey = secretKeyCache.get(UUID);
-                    if(secretKey == null){
-                        LOGGER.error("SecretKey not found! Either incorrect cache key passed or secret key cache expired");
-                        throw new RuntimeException("SecretKey not found! Either incorrect cache key passed or secret key cache expired");
-                    }
-                    break;
-            }
-        }
-        catch(Exception e){
-            LOGGER.error("Error retrieving cached key");
-            throw new RuntimeException("Error retrieving cached key", e);
-        }
-    }
 
     private byte[] encryptData(String data, SecretKey secretKey){
         try{

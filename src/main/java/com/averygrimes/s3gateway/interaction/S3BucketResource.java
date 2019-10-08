@@ -9,7 +9,6 @@ package com.averygrimes.s3gateway.interaction;
 import com.averygrimes.s3gateway.pojo.S3GatewayDTO;
 import com.averygrimes.s3gateway.service.S3BucketOperationsService;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -31,9 +30,9 @@ public class S3BucketResource {
 
     @Path("/uploadAsset")
     @POST
-    @Consumes({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
-    public Response uploadAsset(@RequestBody S3GatewayDTO s3GatewayDTO){
+    public Response uploadAsset(S3GatewayDTO s3GatewayDTO){
         return s3BucketOperationsService.uploadAsset(s3GatewayDTO);
     }
 
@@ -41,7 +40,7 @@ public class S3BucketResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getItemRequest(@RequestBody S3GatewayDTO s3GatewayDTO){
+    public Response getItemRequest(S3GatewayDTO s3GatewayDTO){
         return s3BucketOperationsService.fetchAsset(s3GatewayDTO);
     }
 }

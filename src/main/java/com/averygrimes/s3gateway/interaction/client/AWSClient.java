@@ -21,7 +21,7 @@ import javax.ws.rs.core.Response;
 public interface AWSClient {
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Path("/{bucket}/{bucketObject}")
     Response getBucketObject(@HeaderParam("Host") String host, @HeaderParam("X-Amz-Date") String xAmzDate, @HeaderParam("Authorization") String authorization,
                              @PathParam("bucket") String bucket, @PathParam("bucketObject") String bucketObject);

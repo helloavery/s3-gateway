@@ -17,7 +17,7 @@ import com.averygrimes.s3gateway.exceptions.AWSSignatureException;
 import com.averygrimes.s3gateway.exceptions.S3GatewayException;
 import com.averygrimes.s3gateway.interaction.client.AWSClient;
 import com.averygrimes.s3gateway.pojo.S3GatewayDTO;
-import org.apache.commons.collections.MapUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -26,6 +26,7 @@ import software.amazon.awssdk.regions.Region;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
@@ -85,7 +86,10 @@ public class S3BucketOperationsServiceImpl implements S3BucketOperationsService{
             Response bucketObjectResponse = awsClient.getBucketObject((String) signedRequest.getHeaders().get("Host"), (String) signedRequest.getHeaders().get("X-Amz-Date"),
                     (String) signedRequest.getHeaders().get("Authorization"), s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
             validateResponse(bucketObjectResponse);
-            S3GatewayDTO encryptedSecrets = cryptoService.encryptAndSendSecrets(bucketObjectResponse.readEntity(String.class), s3GatewayDTO.getSymmetricKeyUUID());
+            ByteArrayOutputStream baos = (ByteArrayOutputStream) bucketObjectResponse.getEntity();
+            String bucketObjectData =  baos.toString();
+            baos.close();
+            S3GatewayDTO encryptedSecrets = cryptoService.encryptAndSendSecrets(bucketObjectData, s3GatewayDTO.getSymmetricKeyUUID());
             if(encryptedSecrets == null){
                 LOGGER.error("Error encrypting secrets for bucket {} and object {}", s3GatewayDTO.getBucket(), s3GatewayDTO.getBucketObject());
                 throw S3GatewayException.buildResponse("S3Gateway: Error encrypting secrets");
@@ -112,7 +116,7 @@ public class S3BucketOperationsServiceImpl implements S3BucketOperationsService{
             aws4Signer.setEndpointPrefix(programArguments.getAWSS3APIEndpoint());
             aws4Signer.setServiceName("execute-api");
             DefaultRequest request = new DefaultRequest(amazonWebServiceRequest, "execute-api");
-            request.setResourcePath(programArguments.getAWSAPIGatewayStage() + programArguments.getAWSS3APIEndpoint() + bucket + bucketObject);
+            request.setResourcePath(programArguments.getAWSAPIGatewayStage() + "/" + bucket + "/" + bucketObject);
             request.setHttpMethod(httpMethod);
             if(httpMethod == HttpMethodName.PUT){
                 request.setHttpMethod(httpMethod);

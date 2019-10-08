@@ -8,7 +8,6 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -35,13 +34,5 @@ public class CryptoResource {
     public Response addItemRequest(byte[] publicKey){
         S3GatewayDTO symmetricKey  = cryptoService.generateSymmetricKey(publicKey);
         return Response.ok(symmetricKey).build();
-    }
-
-    @Path("/requestPubKey")
-    @POST
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    public Response addItemRequest(@QueryParam("key") Long key){
-        byte[] keyPairResponse = cryptoService.generateAndReturnCachedKeyPair(key);
-        return Response.ok(keyPairResponse).build();
     }
 }

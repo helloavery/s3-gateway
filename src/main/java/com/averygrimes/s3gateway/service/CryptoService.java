@@ -16,5 +16,4 @@ public interface CryptoService {
 
     String decryptAndUploadSecrets(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, String UUID);
 
-    byte[] generateAndReturnCachedKeyPair(Long key);
 }
