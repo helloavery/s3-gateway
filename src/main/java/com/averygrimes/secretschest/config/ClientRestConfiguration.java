@@ -1,6 +1,7 @@
 package com.averygrimes.s3gateway.config;
 
 import com.averygrimes.s3gateway.interaction.client.AWSClient;
+import com.averygrimes.servicediscovery.EnableServiceDiscovery;
 import com.averygrimes.servicediscovery.SimpleFeignClientBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import javax.inject.Inject;
  */
 
 @Configuration
+@EnableServiceDiscovery
 public class ClientRestConfiguration {
 
     private ProgramArguments programArguments;

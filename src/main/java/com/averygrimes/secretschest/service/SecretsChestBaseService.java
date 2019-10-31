@@ -1,6 +1,6 @@
-package com.averygrimes.s3gateway.service;
+package com.averygrimes.secretschest.service;
 
-import com.averygrimes.s3gateway.pojo.S3GatewayDTO;
+import com.averygrimes.secretschest.pojo.S3GatewayDTO;
 
 import javax.ws.rs.core.Response;
 

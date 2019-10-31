@@ -1,4 +1,4 @@
-package com.averygrimes.s3gateway.service;
+package com.averygrimes.secretschest.service;
 
 /**
  * @author Avery Grimes-Farrow
@@ -12,11 +12,11 @@ import com.amazonaws.auth.AWS4Signer;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.http.HttpMethodName;
-import com.averygrimes.s3gateway.config.ProgramArguments;
-import com.averygrimes.s3gateway.exceptions.AWSSignatureException;
-import com.averygrimes.s3gateway.exceptions.S3GatewayException;
-import com.averygrimes.s3gateway.interaction.client.AWSClient;
-import com.averygrimes.s3gateway.pojo.S3GatewayDTO;
+import com.averygrimes.secretschest.config.ProgramArguments;
+import com.averygrimes.secretschest.exceptions.AWSSignatureException;
+import com.averygrimes.secretschest.exceptions.S3GatewayException;
+import com.averygrimes.secretschest.interaction.client.AWSClient;
+import com.averygrimes.secretschest.pojo.S3GatewayDTO;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

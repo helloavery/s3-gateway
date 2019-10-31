@@ -1,4 +1,4 @@
-package com.averygrimes.s3gateway.interaction.client;
+package com.averygrimes.secretschest.interaction.client;
 
 import javax.inject.Named;
 import javax.ws.rs.Consumes;
