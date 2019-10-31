@@ -1,4 +1,4 @@
-package com.averygrimes.secretschest.interaction.client;
+package com.averygrimes.secretschest.interaction;
 
 import javax.inject.Named;
 import javax.ws.rs.Consumes;
@@ -32,6 +32,6 @@ public interface AWSClient {
     @Path("/{bucket}/{bucketObject}")
     Response uploadBucketObject(@HeaderParam("Host") String host, @HeaderParam("X-Amz-Date") String xAmzDate, @HeaderParam("Authorization") String authorization,
                                 @HeaderParam("Content-Length") String contentLength, @HeaderParam("cache-control") String cacheControl,
-                                @PathParam("bucket") String bucket, @PathParam("bucketObject") String bucketObject, String contentToUpload);
+                                @PathParam("bucket") String bucket, @PathParam("bucketObject") String bucketObject, byte[] contentToUpload);
 
 }

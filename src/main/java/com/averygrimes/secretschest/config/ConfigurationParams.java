@@ -1,4 +1,4 @@
-package com.averygrimes.s3gateway.config;
+package com.averygrimes.secretschest.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

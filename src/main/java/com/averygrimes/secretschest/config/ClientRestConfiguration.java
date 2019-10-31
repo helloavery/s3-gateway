@@ -1,6 +1,6 @@
-package com.averygrimes.s3gateway.config;
+package com.averygrimes.secretschest.config;
 
-import com.averygrimes.s3gateway.interaction.client.AWSClient;
+import com.averygrimes.secretschest.interaction.AWSClient;
 import com.averygrimes.servicediscovery.EnableServiceDiscovery;
 import com.averygrimes.servicediscovery.SimpleFeignClientBean;
 import org.springframework.context.annotation.Bean;

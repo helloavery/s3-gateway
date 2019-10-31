@@ -1,4 +1,4 @@
-package com.averygrimes.s3gateway;
+package com.averygrimes.secretschest;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

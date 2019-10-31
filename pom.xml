@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.averygrimes.s3gateway</groupId>
-	<artifactId>gateway-parent</artifactId>
+	<groupId>com.averygrimes.secretschest</groupId>
+	<artifactId>secretschest-parent</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>S3Gateway</name>
-	<description>S3 Gateway Project</description>
+	<name>Secrets Chest</name>
+	<description>Secrets Chest Project</description>
 
 	<properties>
 		<resource.delimiter>@</resource.delimiter> <!-- delimiter that doesn't clash with Spring ${} placeholders -->
@@ -16,13 +16,13 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<agateway-version>1.1.2</agateway-version>
-		<averygrimes-nexus-version>1.0-SNAPSHOT</averygrimes-nexus-version>
+		<averygrimes-axis-version>1.0-SNAPSHOT</averygrimes-axis-version>
 		<averygrimes-service-discovery-version>1.0-SNAPSHOT</averygrimes-service-discovery-version>
+		<bouncy-castle-version>1.60</bouncy-castle-version>
 		<s3gateway-sdk-version>1.0.0</s3gateway-sdk-version>
 		<aws-sdk-version>1.11.466</aws-sdk-version>
 		<ecache-version>3.8.1</ecache-version>
-		<spring-boot-version>2.1.8.RELEASE</spring-boot-version>
-		<spring-cloud.version>2.1.3.RELEASE</spring-cloud.version>
+		<spring-boot-version>2.2.0.RELEASE</spring-boot-version>
 	</properties>
 
 	<dependencyManagement>
@@ -30,7 +30,7 @@
 			<dependency>
 				<groupId>software.amazon.awssdk</groupId>
 				<artifactId>bom</artifactId>
-				<version>2.1.4</version>
+				<version>2.10.1</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -40,50 +40,48 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.averygrimes</groupId>
-			<artifactId>nexus</artifactId>
-			<version>${averygrimes-nexus-version}</version>
+			<artifactId>axis-cache</artifactId>
+			<version>${averygrimes-axis-version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.averygrimes</groupId>
+			<artifactId>axis-common</artifactId>
+			<version>${averygrimes-axis-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.averygrimes</groupId>
 			<artifactId>service-discovery</artifactId>
 			<version>${averygrimes-service-discovery-version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 			<version>${spring-boot-version}</version>
 		</dependency>
+
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-			<version>${spring-cloud.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>javax.ws.rs</groupId>
-					<artifactId>jsr311-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.sun.jersey</groupId>
-					<artifactId>jersey-client</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.sun.jersey</groupId>
-					<artifactId>jersey-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.sun.jersey</groupId>
-					<artifactId>jersey-server</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.sun.jersey</groupId>
-					<artifactId>jersey-servlet</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>${bouncy-castle-version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>${bouncy-castle-version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.glassfish.jersey.bundles</groupId>
 			<artifactId>jaxrs-ri</artifactId>
-			<version>2.27</version>
+			<version>2.29.1</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.10</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -97,8 +95,13 @@
 		</dependency>
 		<dependency>
 			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-kms</artifactId>
+			<version>1.11.659</version>
+		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-sts</artifactId>
-			<version>1.11.466</version>
+			<version>1.11.659</version>
 		</dependency>
 		<dependency>
 			<groupId>com.averygrimes.sdk</groupId>
@@ -124,25 +127,5 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-clean-plugin</artifactId>
-				<configuration>
-					<filesets>
-						<fileset>
-							<directory>${basedir}</directory>
-							<includes>
-								<include>**/logs/**</include>
-							</includes>
-							<followSymlinks>false</followSymlinks>
-						</fileset>
-					</filesets>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
 
 </project>

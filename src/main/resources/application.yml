@@ -1,6 +1,5 @@
 logging:
   level:
-    com.averygrimes.s3gateway: INFO
-    org.hibernate: ERROR
-    logging.file: logs/s3gatewayLog.log
+    com.averygrimes.secretschest: INFO
+  file.path: logs/secrets-chest-log
 

@@ -1,4 +1,7 @@
-package com.averygrimes.s3gateway.service;
+package com.averygrimes.secretschest.service;
+
+import java.nio.ByteBuffer;
+import java.util.Map;
 
 /**
  * @author Avery Grimes-Farrow
@@ -6,14 +9,13 @@ package com.averygrimes.s3gateway.service;
  * https://github.com/helloavery
  */
 
-import com.averygrimes.s3gateway.pojo.S3GatewayDTO;
 
 public interface CryptoService {
 
-    S3GatewayDTO generateSymmetricKey(byte[] publicKey);
+    Map<String, Object> generateDataKeyAndEncryptData(byte[] dataToUpload);
 
-    S3GatewayDTO encryptAndSendSecrets(String data, String secretKeyUUID);
+    byte[] decryptData(byte[] encryptedData, ByteBuffer encryptedKey);
 
-    String decryptAndUploadSecrets(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, String UUID);
+    byte[] encryptDataWithoutGeneratingDataKey(byte[] dataToUpload, ByteBuffer encryptedKey);
 
 }

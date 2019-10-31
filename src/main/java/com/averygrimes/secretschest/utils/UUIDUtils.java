@@ -1,4 +1,4 @@
-package com.averygrimes.secretschest;
+package com.averygrimes.secretschest.utils;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.logging.log4j.LogManager;

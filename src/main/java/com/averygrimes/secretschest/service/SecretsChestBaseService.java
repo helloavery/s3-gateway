@@ -1,6 +1,5 @@
 package com.averygrimes.secretschest.service;
 
-import com.averygrimes.secretschest.pojo.S3GatewayDTO;
 
 import javax.ws.rs.core.Response;
 
@@ -10,9 +9,11 @@ import javax.ws.rs.core.Response;
  * https://github.com/helloavery
  */
 
-public interface S3BucketOperationsService {
+public interface SecretsChestBaseService {
 
-    Response uploadAsset(S3GatewayDTO s3GatewayDTO);
+    Response uploadAsset(byte[] dataToUpload, String requestId);
 
-    Response fetchAsset(S3GatewayDTO s3GatewayDTO);
+    Response updateAsset(String secretsReference, byte[] dataToUpload, String requestId);
+
+    Response retrieveAsset(String secretReference, String requestId);
 }

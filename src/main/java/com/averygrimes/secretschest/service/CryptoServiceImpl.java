@@ -1,4 +1,4 @@
-package com.averygrimes.s3gateway.service;
+package com.averygrimes.secretschest.service;
 
 /**
  * @author Avery Grimes-Farrow
@@ -6,67 +6,41 @@ package com.averygrimes.s3gateway.service;
  * https://github.com/helloavery
  */
 
-import com.averygrimes.s3gateway.config.EhCacheManager;
-import com.averygrimes.s3gateway.pojo.S3GatewayDTO;
-import org.apache.commons.codec.binary.Hex;
+import com.amazonaws.services.kms.AWSKMS;
+import com.amazonaws.services.kms.AWSKMSClientBuilder;
+import com.amazonaws.services.kms.model.DecryptRequest;
+import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
+import com.amazonaws.services.kms.model.GenerateDataKeyResult;
+import com.averygrimes.secretschest.pojo.SecretsChestConstants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.ehcache.Cache;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.regions.Region;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.inject.Inject;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.security.Security;
-import java.security.Signature;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class CryptoServiceImpl implements CryptoService{
 
     private static final Logger LOGGER = LogManager.getLogger(CryptoServiceImpl.class);
 
-    private EhCacheManager ehCacheManager;
-    private Cache<String, SecretKey> secretKeyCache;
-    private Cache<String, KeyPair> keyPairCache;
+    private AWSKMS kmsClient;
     private Cipher cipher;
-    private KeyGenerator keyGenerator;
-    private KeyPairGenerator keyPairGenerator;
-    private KeyPair keyPair;
-    private SecretKey secretKey;
-    private Signature signature;
-    private static final String RSA = "RSA";
-    private static final String AES = "AES";
-    private static final String AES_CBC_PKCS5PADDING = "AES/CBC/PKCS5Padding";
-    private static final String SHA256 = "SHA256WithRSA";
-
-    @Inject
-    public CryptoServiceImpl(EhCacheManager ehCacheManager){
-        this.ehCacheManager = ehCacheManager;
-    }
+    private static final String AES_256 = "AES_256";
 
     @PostConstruct
     private void init(){
         try{
             Security.addProvider(new BouncyCastleProvider());
-            this.keyGenerator = KeyGenerator.getInstance(AES);
-            this.keyPairGenerator = KeyPairGenerator.getInstance(RSA);
-            this.keyPairGenerator.initialize(2048);
-            this.signature = Signature.getInstance(SHA256);
-            this.secretKeyCache = ehCacheManager.getSecretKeyCache();
-            this.keyPairCache = ehCacheManager.getKeyPairCache();
+            this.kmsClient = AWSKMSClientBuilder.standard().withRegion(Region.US_EAST_2.toString()).build();
         }
         catch(Exception e){
             LOGGER.error("Error setting up and initializing service");
@@ -75,57 +49,18 @@ public class CryptoServiceImpl implements CryptoService{
     }
 
     @Override
-    public S3GatewayDTO generateSymmetricKey(byte[] publicKey) {
+    public Map<String, Object> generateDataKeyAndEncryptData(byte[] dataToUpload){
         try{
-            String secretKeyUUID = generateUUID();
-            String keyPairUUID = generateUUID();
-            generateSecretKey();
-            generateKeyPair();
-            cacheObject(secretKeyCache, secretKeyUUID, secretKey);
-            cacheObject(keyPairCache, keyPairUUID, keyPair);
-            PublicKey decodedPublicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(publicKey));
-            byte[] encryptedSymmetricKey = encryptSymmetricKey(secretKey, decodedPublicKey);
-            S3GatewayDTO response = new S3GatewayDTO();
-            response.setSymmetricKeyUUID(secretKeyUUID);
-            response.setSymmetricKey(encryptedSymmetricKey);
-            response.setKeyPairUUID(keyPairUUID);
-            return response;
-        }
-        catch(Exception e){
-            LOGGER.error("Error generating and caching key pair");
-            throw new RuntimeException("Error generating and caching key pair", e);
-        }
-    }
+            GenerateDataKeyResult dataKeyResult = generateDataKey();
+            ByteBuffer plaintextKey = dataKeyResult.getPlaintext();
+            ByteBuffer encryptedKey = dataKeyResult.getCiphertextBlob();
 
-    @Override
-    public S3GatewayDTO encryptAndSendSecrets(String data, String secretKeyUUID){
-        try{
-            secretKey = getObjectFromCache(secretKeyCache, secretKeyUUID);
-            byte[] encryptedData = encryptData(data, secretKey);
-            byte[] generatedSignature = generateSignature(data.getBytes(StandardCharsets.UTF_8));
-            S3GatewayDTO response = new S3GatewayDTO();
-            response.setCipherText(encryptedData);
-            response.setSignature(generatedSignature);
-            response.setPublicKey(getPublicKey().getEncoded());
-            return response;
-        }
-        catch(Exception e){
-            LOGGER.error("Error encrypting secrets and generating signature");
-            throw new RuntimeException("Error encrypting secrets and generating signature",e);
-        }
-    }
-
-    @Override
-    public String decryptAndUploadSecrets(byte[] cipherText, byte[] encodedPubKey, byte[] digitalSignature, String UUID){
-        try{
-            keyPair = getObjectFromCache(keyPairCache, UUID);
-            byte[] decryptedData = decryptData(cipherText, secretKey);
-            PublicKey decodedPublicKey = KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(encodedPubKey));
-            if(!verifySignature(decodedPublicKey,decryptedData,digitalSignature)){
-                LOGGER.error("Signature verification came back as false");
-                throw new RuntimeException("Signature verification came back as false");
-            }
-            return new String(decryptedData,StandardCharsets.UTF_8);
+            SecretKey plaintextSecretKey = getExistingSecretKey(convertByteBufferToByteArray(plaintextKey));
+            byte[] encryptedData = encryptData(dataToUpload, plaintextSecretKey);
+            Map<String, Object> encryptedDataAndKey = new HashMap<>();
+            encryptedDataAndKey.put(SecretsChestConstants.ENCRYPTED_DATA_MAP_KEY, encryptedData);
+            encryptedDataAndKey.put(SecretsChestConstants.ENCRYPTED_KEY_MAP_KEY, encryptedKey);
+            return encryptedDataAndKey;
         }
         catch(Exception e){
             LOGGER.error("Error decrypting secrets to be uploaded");
@@ -133,127 +68,79 @@ public class CryptoServiceImpl implements CryptoService{
         }
     }
 
-    private <T> void cacheObject(Cache<String, T> cacheObject, String key, T value){
-        cacheObject.put(key, value);
-    }
-
-    private <T> T getObjectFromCache(Cache<String, T> cacheObject, String key){
-        return cacheObject.get(key);
-    }
-
-
-    private byte[] encryptData(String data, SecretKey secretKey){
+    @Override
+    public byte[] encryptDataWithoutGeneratingDataKey(byte[] dataToUpload, ByteBuffer encryptedKey){
         try{
+            ByteBuffer decryptedKey = decryptDataKeyAndReturnPlainTextKey(encryptedKey);
+            SecretKey plaintextSecretKey = getExistingSecretKey(convertByteBufferToByteArray(decryptedKey));
+            return encryptData(dataToUpload, plaintextSecretKey);
+        }
+        catch(Exception e){
+            LOGGER.error("Error decrypting secrets to be uploaded");
+            throw new RuntimeException("Error decrypting secrets to be uploaded",e);
+        }
+    }
+
+    @Override
+    public byte[] decryptData(byte[] encryptedData, ByteBuffer encryptedKey){
+        try{
+            ByteBuffer plaintextKey = decryptDataKeyAndReturnPlainTextKey(encryptedKey);
+            SecretKey plaintextSecretKey = getExistingSecretKey(convertByteBufferToByteArray(plaintextKey));
+            return decryptData(encryptedData, plaintextSecretKey);
+        }
+        catch(Exception e){
+            LOGGER.error("Error decrypting secrets to be uploaded");
+            throw new RuntimeException("Error decrypting secrets to be uploaded",e);
+        }
+    }
+
+    private GenerateDataKeyResult generateDataKey(){
+        String keyId = "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
+
+        GenerateDataKeyRequest dataKeyRequest = new GenerateDataKeyRequest();
+        dataKeyRequest.setKeyId(keyId);
+        dataKeyRequest.setKeySpec("AES_256");
+
+        return kmsClient.generateDataKey(dataKeyRequest);
+    }
+
+    private ByteBuffer decryptDataKeyAndReturnPlainTextKey(ByteBuffer ciphertextBlob){
+        DecryptRequest req = new DecryptRequest().withCiphertextBlob(ciphertextBlob);
+        return kmsClient.decrypt(req).getPlaintext();
+    }
+
+    private SecretKey getExistingSecretKey(byte[] encodedSecretKey){
+        return new SecretKeySpec(encodedSecretKey, 0, encodedSecretKey.length, AES_256);
+    }
+
+    private byte[] convertByteBufferToByteArray(ByteBuffer byteBuffer){
+        byte[] bytesArray = new byte[byteBuffer.remaining()];
+        byteBuffer.get(bytesArray, 0, bytesArray.length);
+        return bytesArray;
+    }
+
+    private byte[] encryptData(byte[] dataToEncrypt, SecretKey secretKey) {
+        try {
             LOGGER.info("Encrypting retrieved secrets");
-            cipher = Cipher.getInstance(AES);
+            cipher = Cipher.getInstance(AES_256);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-            byte[] dataInBytes = data.getBytes(StandardCharsets.UTF_8);
-            return cipher.doFinal(dataInBytes);
-        }
-        catch(Exception e){
+            return cipher.doFinal(dataToEncrypt);
+        } catch (Exception e) {
             LOGGER.error("Error encrypting retrieved secrets");
-            throw new RuntimeException("Error encrypted retrieved secrets",e);
+            throw new RuntimeException("Error encrypted retrieved secrets", e);
         }
     }
 
-    private byte[] encryptSymmetricKey(SecretKey secretKey, PublicKey publicKey){
-        try{
-            LOGGER.info("Encrypting symmetric key");
-            cipher = Cipher.getInstance(RSA);
-            cipher.init(Cipher.WRAP_MODE, publicKey);
-            return cipher.wrap(secretKey);
-        }
-        catch(Exception e){
-            LOGGER.error("Error encrypting retrieved secrets");
-            throw new RuntimeException("Error encrypted retrieved secrets",e);
-        }
-    }
-
-    private SecretKey decryptSymmetricKey(byte[] encryptedSecretKey, PublicKey publicKey){
-        try{
-            LOGGER.info("Decrypting symmetric key");
-            cipher = Cipher.getInstance(RSA);
-            cipher.init(Cipher.UNWRAP_MODE, publicKey);
-            return (SecretKey) cipher.unwrap(encryptedSecretKey,AES, Cipher.SECRET_KEY);
-        }
-        catch(Exception e){
-            LOGGER.error("Error encrypting retrieved secrets");
-            throw new RuntimeException("Error encrypted retrieved secrets",e);
-        }
-    }
-
-    private byte[] decryptData(byte[] data, SecretKey secretKey){
+    private byte[] decryptData(byte[] encryptedData, SecretKey secretKey){
         try{
             LOGGER.info("decrypting secrets");
-            cipher = Cipher.getInstance(AES);
+            cipher = Cipher.getInstance(AES_256);
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
-            return cipher.doFinal(data);
+            return cipher.doFinal(encryptedData);
         }
         catch(Exception e){
             LOGGER.error("Error decrypting secrets");
             throw new RuntimeException("Error decrypting retrieved secrets",e);
-        }
-    }
-
-    private byte[] generateSignature(byte[] data) throws Exception{
-        try{
-            generateKeyPair();
-            LOGGER.info("Generating signature");
-            SecureRandom secureRandom = new SecureRandom();
-            signature.initSign(getPrivateKey(),secureRandom);
-            signature.update(data);
-            return signature.sign();
-        }
-        catch(Exception e){
-            LOGGER.error("Error generating signature for data");
-            throw e;
-        }
-    }
-
-    private boolean verifySignature(PublicKey publicKey, byte[] data, byte[] digitalSignature) throws Exception{
-        try{
-            LOGGER.info("Verifying signature retrieved from requesting app");
-            signature.initVerify(publicKey);
-            signature.update(data);
-            return signature.verify(digitalSignature);
-        }
-        catch(Exception e){
-            LOGGER.error("Error verifying signature");
-            throw e;
-        }
-    }
-
-    private void generateSecretKey(){
-        try{
-            secretKey = keyGenerator.generateKey();
-        }
-        catch(Exception e){
-            LOGGER.error("Error generating symmetric secret key");
-            throw e;
-        }
-    }
-
-    private void generateKeyPair(){
-        LOGGER.info("Generating new key pair");
-        keyPair = keyPairGenerator.generateKeyPair();
-    }
-
-    private PublicKey getPublicKey(){
-        return keyPair.getPublic();
-    }
-
-    private PrivateKey getPrivateKey(){
-        return keyPair.getPrivate();
-    }
-
-    private String generateUUID() {
-        try {
-            MessageDigest salt = MessageDigest.getInstance("SHA-256");
-            salt.update(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
-            return Hex.encodeHexString(salt.digest());
-        } catch (Exception e) {
-            LOGGER.error("Error generating new UUID");
-            throw new RuntimeException("Error generating new UUID", e);
         }
     }
 }

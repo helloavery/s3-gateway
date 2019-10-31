@@ -1,4 +1,4 @@
-package com.averygrimes.s3gateway.exceptions;
+package com.averygrimes.secretschest.exceptions;
 
 /**
  * @author Avery Grimes-Farrow

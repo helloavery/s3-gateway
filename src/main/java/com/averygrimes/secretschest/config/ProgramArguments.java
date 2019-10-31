@@ -1,4 +1,8 @@
-package com.averygrimes.s3gateway.config;
+package com.averygrimes.secretschest.config;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * @author Avery Grimes-Farrow
@@ -6,24 +10,13 @@ package com.averygrimes.s3gateway.config;
  * https://github.com/helloavery
  */
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class ProgramArguments {
 
     private String AWSS3APIEndpoint;
     private String AWSAPIGatewayStage;
-
-    public String getAWSS3APIEndpoint() {
-        return AWSS3APIEndpoint;
-    }
-
-    public void setAWSS3APIEndpoint(String AWSS3APIEndpoint) {
-        this.AWSS3APIEndpoint = AWSS3APIEndpoint;
-    }
-
-    public String getAWSAPIGatewayStage() {
-        return AWSAPIGatewayStage;
-    }
-
-    public void setAWSAPIGatewayStage(String AWSAPIGatewayStage) {
-        this.AWSAPIGatewayStage = AWSAPIGatewayStage;
-    }
+    private String AWSS3DataBucket;
+    private String AWSS3KeyBucket;
 }

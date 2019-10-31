@@ -13,10 +13,15 @@ import java.util.Map;
  * https://github.com/helloavery
  */
 
-public class SecretsChestServerError extends WebApplicationException {
+public class SecretsChestServerException extends WebApplicationException {
 
-    private SecretsChestServerError(Response response){
+    private SecretsChestServerException(Response response){
         super(response);
+    }
+
+    public static SecretsChestServerException buildResponse(String message){
+        Response response = generateResponse(message);
+        return new SecretsChestServerException(response);
     }
 
     private static Response generateResponse(String message){

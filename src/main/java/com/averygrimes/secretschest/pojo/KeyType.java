@@ -1,4 +1,4 @@
-package com.averygrimes.s3gateway.pojo;
+package com.averygrimes.secretschest.pojo;
 
 /**
  * @author Avery Grimes-Farrow
