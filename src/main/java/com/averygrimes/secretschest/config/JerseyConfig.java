@@ -16,7 +16,7 @@ import javax.ws.rs.ApplicationPath;
 
 @Named
 @ApplicationPath("/rest/v1")
-@ServiceDiscoveryRegister(service = "forecaster-service", version = "1.0.0", healthCheckPath = "/health")
+@ServiceDiscoveryRegister(service = "secrets-chest-service", version = "1.0.0", healthCheckPath = "/health")
 public class JerseyConfig extends ResourceConfig {
 
     public JerseyConfig(){
