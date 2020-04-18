@@ -19,4 +19,5 @@ public class ProgramArguments {
     private String AWSAPIGatewayStage;
     private String AWSS3DataBucket;
     private String AWSS3KeyBucket;
+    private String kmsKeyARN;
 }

@@ -1,7 +1,7 @@
 package com.averygrimes.secretschest.service;
 
 
-import javax.ws.rs.core.Response;
+import com.averygrimes.secretschest.pojo.SecretsChestResponse;
 
 /**
  * @author Avery Grimes-Farrow
@@ -11,9 +11,11 @@ import javax.ws.rs.core.Response;
 
 public interface SecretsChestBaseService {
 
-    Response uploadAsset(byte[] dataToUpload, String requestId);
+    SecretsChestResponse uploadAsset(byte[] dataToUpload, String requestId);
 
-    Response updateAsset(String secretsReference, byte[] dataToUpload, String requestId);
+    SecretsChestResponse uploadPlainTextAsset(String dataToUpload, String requestId);
 
-    Response retrieveAsset(String secretReference, String requestId);
+    SecretsChestResponse updateAsset(String secretsReference, byte[] dataToUpload, String requestId);
+
+    SecretsChestResponse retrieveAsset(String secretReference, String requestId);
 }

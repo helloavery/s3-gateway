@@ -21,7 +21,7 @@ import javax.ws.rs.core.Response;
 public interface AWSClient {
 
     @GET
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces(MediaType.TEXT_PLAIN)
     @Path("/{bucket}/{bucketObject}")
     Response getBucketObject(@HeaderParam("Host") String host, @HeaderParam("X-Amz-Date") String xAmzDate, @HeaderParam("Authorization") String authorization,
                              @PathParam("bucket") String bucket, @PathParam("bucketObject") String bucketObject);
@@ -32,6 +32,6 @@ public interface AWSClient {
     @Path("/{bucket}/{bucketObject}")
     Response uploadBucketObject(@HeaderParam("Host") String host, @HeaderParam("X-Amz-Date") String xAmzDate, @HeaderParam("Authorization") String authorization,
                                 @HeaderParam("Content-Length") String contentLength, @HeaderParam("cache-control") String cacheControl,
-                                @PathParam("bucket") String bucket, @PathParam("bucketObject") String bucketObject, byte[] contentToUpload);
+                                @PathParam("bucket") String bucket, @PathParam("bucketObject") String bucketObject, String contentToUpload);
 
 }

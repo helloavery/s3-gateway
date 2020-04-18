@@ -1,6 +1,7 @@
 package com.averygrimes.secretschest.utils;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,5 +28,9 @@ public class UUIDUtils {
             LOGGER.error("Error generating new UUID");
             throw new RuntimeException("Error generating new UUID", e);
         }
+    }
+
+    public static String generateRandomId(){
+        return RandomStringUtils.random(24, true, true);
     }
 }

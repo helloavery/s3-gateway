@@ -8,6 +8,9 @@ package com.averygrimes.secretschest.pojo;
 
 public interface SecretsChestConstants {
 
+    /** SecretsChestsBase Constants **/
+    String PLAIN_TEXT_DATA = "plaintext";
+
     /** AWS Constants **/
     String AWS_SERVICE_NAME = "execute-api";
     String AWS_DEFAULT_PROFILE_NAME = "default";

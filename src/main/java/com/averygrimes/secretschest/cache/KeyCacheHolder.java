@@ -12,16 +12,16 @@ import java.util.List;
 
 public class KeyCacheHolder {
 
-    private static List<KeyCache> sessionCaches = new ArrayList<>();
+    private static final List<KeyCache> keyCaches = new ArrayList<>();
 
     private KeyCacheHolder() {
     }
 
-    public static void addSessionCache(KeyCache sessionCache){
-        sessionCaches.add(sessionCache);
+    public static void addKeyCache(KeyCache keyCache){
+        keyCaches.add(keyCache);
     }
 
-    public static List<KeyCache> getAllSessionCaches(){
-        return Collections.unmodifiableList(sessionCaches);
+    public static List<KeyCache> getAllKeyCaches(){
+        return Collections.unmodifiableList(keyCaches);
     }
 }

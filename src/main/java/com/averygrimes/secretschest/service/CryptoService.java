@@ -1,5 +1,7 @@
 package com.averygrimes.secretschest.service;
 
+import software.amazon.awssdk.core.SdkBytes;
+
 import java.nio.ByteBuffer;
 import java.util.Map;
 
@@ -16,6 +18,6 @@ public interface CryptoService {
 
     byte[] decryptData(byte[] encryptedData, ByteBuffer encryptedKey);
 
-    byte[] encryptDataWithoutGeneratingDataKey(byte[] dataToUpload, ByteBuffer encryptedKey);
+    byte[] encryptDataWithoutGeneratingDataKey(byte[] dataToUpload, SdkBytes encryptedKey);
 
 }

@@ -5,7 +5,6 @@ import com.averygrimes.axis.cache.CacheObject;
 import org.apache.commons.collections4.MapUtils;
 
 import javax.inject.Named;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -20,18 +19,17 @@ public class KeyCacheImpl extends AbstractCache implements KeyCache {
 
     public KeyCacheImpl() {
         super(SESSION_CACHE_NAME);
-        KeyCacheHolder.addSessionCache(this);
+        KeyCacheHolder.addKeyCache(this);
     }
 
     @Override
-    public Map<String, Object> get(String key) {
-        Map<String, Object> sessionMap = (Map<String, Object>) super.getItemFromCache(key);
-        return sessionMap != null ? sessionMap : new HashMap<>();
+    public Object get(String key) {
+        return super.getItemFromCache(key);
     }
 
     @Override
     public void put(String key, Object value) {
-        super.putItemInCache(key, value, SESSION_TTL_MILLIS, TimeUnit.MILLISECONDS);
+        super.putItemInCache(key, value, SESSION_TTL_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
@@ -41,15 +39,15 @@ public class KeyCacheImpl extends AbstractCache implements KeyCache {
             if((refreshMillis > 0) && System.currentTimeMillis() - cacheObject.getCreatedTimestamp() > refreshMillis){
 
             }
-            super.updateItemInCache(keyId, cacheObject, SESSION_TTL_MILLIS, TimeUnit.MILLISECONDS);
+            super.updateItemInCache(keyId, cacheObject, SESSION_TTL_SECONDS, TimeUnit.SECONDS);
         }
     }
 
     @Override
     public void clear(String keyId) {
-        Map<String, Object> keyMap = this.get(keyId);
+        Map<String, CacheObject> keyMap = cacheMap;
         if(MapUtils.isNotEmpty(keyMap)){
-            keyMap.clear();
+            super.clearCache();
         }
     }
 }

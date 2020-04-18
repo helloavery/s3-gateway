@@ -5,9 +5,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
  * @author Avery Grimes-Farrow
- * Created on: 10/28/19
+ * Created on: 4/16/20
  * https://github.com/helloavery
  */
 
@@ -15,9 +17,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UploadDataResponse {
+public class SecretsChestResponse {
 
     private boolean isSuccessful;
+    private byte[] data;
     private String secretReference;
-    private String error;
+    private List<String> errors;
 }
