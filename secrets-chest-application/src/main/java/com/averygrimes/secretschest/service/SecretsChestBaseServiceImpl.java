@@ -221,6 +221,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
         }
         catch(Exception e){
             LOGGER.error("Error uploading object to bucket {} for request id {}, caught error is {}", bucket, requestId, e.getMessage());
+            LOGGER.error(((WebApplicationException) e).getResponse().getEntity().toString());
         }
         return response;
     }
@@ -231,7 +232,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
         }
     }
 
-    private DefaultRequest<T> createAWSSignature(String bucket, String bucketObject, HttpMethodName httpMethod, String content, String requestId){
+    private synchronized DefaultRequest<T> createAWSSignature(String bucket, String bucketObject, HttpMethodName httpMethod, String content, String requestId){
         try{
             LOGGER.info("Generating AWS Signature for bucket {} and object {}", bucket, bucketObject);
             AmazonWebServiceRequest amazonWebServiceRequest = new AmazonWebServiceRequest() {};

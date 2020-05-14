@@ -2,11 +2,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.averygrimes.secretschest</groupId>
+	<groupId>com.averygrimes</groupId>
 	<artifactId>secretschest-parent</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<name>Secrets Chest</name>
 	<description>Secrets Chest Project</description>
+
+	<modules>
+		<module>secrets-chest-application</module>
+		<module>secrets-chest-utils</module>
+	</modules>
 
 	<properties>
 		<resource.delimiter>@</resource.delimiter> <!-- delimiter that doesn't clash with Spring ${} placeholders -->
