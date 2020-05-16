@@ -25,7 +25,7 @@ public class UUIDUtils {
             salt.update(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
             return Hex.encodeHexString(salt.digest());
         } catch (Exception e) {
-            LOGGER.error("Error generating new UUID");
+            LOGGER.error("Error generating new UUID", e);
             throw new RuntimeException("Error generating new UUID", e);
         }
     }

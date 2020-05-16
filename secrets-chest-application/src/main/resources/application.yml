@@ -3,3 +3,6 @@ logging:
     com.averygrimes.secretschest: INFO
   file.path: logs/secrets-chest-log
 
+server:
+  error:
+    include-stacktrace: always

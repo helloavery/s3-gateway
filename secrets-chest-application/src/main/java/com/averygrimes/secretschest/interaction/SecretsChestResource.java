@@ -1,5 +1,6 @@
 package com.averygrimes.secretschest.interaction;
 
+import com.averygrimes.secretschest.pojo.S3OperationMethod;
 import com.averygrimes.secretschest.pojo.SecretsChestConstants;
 import com.averygrimes.secretschest.pojo.SecretsChestResponse;
 import com.averygrimes.secretschest.service.SecretsChestBaseService;
@@ -15,7 +16,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -37,26 +37,26 @@ public class SecretsChestResource {
     }
 
     @POST
-    @Path("/uploadSecrets")
+    @Path("/uploadSecrets/method/{method}")
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response uploadSecrets(byte[] dataToUpload){
+    public Response uploadSecrets(byte[] dataToUpload, @PathParam("method") S3OperationMethod method){
         String requestId = UUIDUtils.generateRandomId();
-        SecretsChestResponse secretsChestResponse = chestBaseService.uploadAsset(dataToUpload, requestId);
+        SecretsChestResponse secretsChestResponse = chestBaseService.uploadAsset(dataToUpload, method, requestId);
         return ResponseBuilder.createSuccessfulUploadDataResponse(secretsChestResponse);
     }
 
     @POST
-    @Path("/uploadSecrets")
+    @Path("/uploadSecrets/format/{format}/method/{method}")
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response uploadSecrets(@QueryParam("format") String format, String dataToUpload){
+    public Response uploadSecrets(@PathParam("format") String format, @PathParam("method") S3OperationMethod method, String dataToUpload){
         String requestId = UUIDUtils.generateRandomId();
         SecretsChestResponse secretsChestResponse = null;
         if(StringUtils.equalsIgnoreCase(format, SecretsChestConstants.PLAIN_TEXT_DATA)){
             secretsChestResponse =  chestBaseService.uploadPlainTextAsset(dataToUpload, requestId);
         }else{
-            secretsChestResponse = chestBaseService.uploadAsset(dataToUpload.getBytes(), requestId);
+            secretsChestResponse = chestBaseService.uploadAsset(dataToUpload.getBytes(), method, requestId);
         }
         return ResponseBuilder.createSuccessfulUploadDataResponse(secretsChestResponse);
     }

@@ -11,4 +11,8 @@ public class SecretsChestCryptoException extends RuntimeException{
     public SecretsChestCryptoException(String message){
         super(message);
     }
+
+    public SecretsChestCryptoException(String message, Throwable e){
+        super(message, e);
+    }
 }

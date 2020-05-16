@@ -1,6 +1,6 @@
 package com.averygrimes.secretschest.config;
 
-import com.averygrimes.axis.EnableAxisCache;
+import com.averygrimes.cache.EnableCacheService;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,7 @@ import org.springframework.core.io.ClassPathResource;
  * https://github.com/helloavery
  */
 
-@EnableAxisCache
+@EnableCacheService
 @Configuration
 public class AppConfig {
 

@@ -32,8 +32,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.inject.Inject;
 import java.nio.ByteBuffer;
 import java.security.Security;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class CryptoServiceImpl implements CryptoService{
@@ -58,13 +57,13 @@ public class CryptoServiceImpl implements CryptoService{
             this.kmsClient = KmsClient.builder().region(Region.US_EAST_2).credentialsProvider(awsCredentialsProviderSetup()).build();
         }
         catch(Exception e){
-            LOGGER.error("Error setting up and initializing service: {}", e.getMessage());
-            throw new SecretsChestCryptoException("Error setting up and initializing service: " + e.getMessage());
+            LOGGER.error("Error setting up and initializing service", e);
+            throw new SecretsChestCryptoException("Error setting up and initializing service", e);
         }
     }
 
     @Override
-    public Map<String, Object> generateDataKeyAndEncryptData(byte[] dataToUpload){
+    public ConcurrentHashMap<String, byte[]> generateDataKeyAndEncryptData(byte[] dataToUpload){
         try{
             GenerateDataKeyResponse dataKeyResult = generateDataKey();
             SdkBytes plaintextKey = dataKeyResult.plaintext();
@@ -72,14 +71,14 @@ public class CryptoServiceImpl implements CryptoService{
 
             SecretKey plaintextSecretKey = getExistingSecretKey(plaintextKey.asByteArray());
             byte[] encryptedData = encryptData(dataToUpload, plaintextSecretKey);
-            Map<String, Object> encryptedDataAndKey = new HashMap<>();
+            ConcurrentHashMap<String, byte[]> encryptedDataAndKey = new ConcurrentHashMap<>();
             encryptedDataAndKey.put(SecretsChestConstants.ENCRYPTED_DATA_MAP_KEY, encryptedData);
-            encryptedDataAndKey.put(SecretsChestConstants.ENCRYPTED_KEY_MAP_KEY, encryptedKey);
+            encryptedDataAndKey.put(SecretsChestConstants.ENCRYPTED_KEY_MAP_KEY, encryptedKey.asByteArray());
             return encryptedDataAndKey;
         }
         catch(Exception e){
-            LOGGER.error("Error decrypting secrets to be uploaded: " + e.getMessage());
-            throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded: " + e.getMessage());
+            LOGGER.error("Error decrypting secrets to be uploaded", e);
+            throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded", e);
         }
     }
 
@@ -91,8 +90,8 @@ public class CryptoServiceImpl implements CryptoService{
             return encryptData(dataToUpload, plaintextSecretKey);
         }
         catch(Exception e){
-            LOGGER.error("Error decrypting secrets to be uploaded: {}", e.getMessage());
-            throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded: " + e.getMessage());
+            LOGGER.error("Error decrypting secrets to be uploaded", e);
+            throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded", e);
         }
     }
 
@@ -104,7 +103,7 @@ public class CryptoServiceImpl implements CryptoService{
             return decryptData(encryptedData, plaintextSecretKey);
         }
         catch(Exception e){
-            LOGGER.error("Error decrypting secrets to be uploaded: {}", e.getMessage());
+            LOGGER.error("Error decrypting secrets to be uploaded", e);
             throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded: " + e.getMessage());
         }
     }
@@ -138,8 +137,8 @@ public class CryptoServiceImpl implements CryptoService{
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
             return cipher.doFinal(dataToEncrypt);
         } catch (Exception e) {
-            LOGGER.error("Error encrypting retrieved secrets: {}", e.getMessage());
-            throw new SecretsChestCryptoException("Error encrypted retrieved secrets: " + e.getMessage());
+            LOGGER.error("Error encrypting retrieved secrets", e);
+            throw new SecretsChestCryptoException("Error encrypted retrieved secrets", e);
         }
     }
 
@@ -151,7 +150,7 @@ public class CryptoServiceImpl implements CryptoService{
             return cipher.doFinal(encryptedData);
         }
         catch(Exception e){
-            LOGGER.error("Error decrypting secrets: {}", e.getMessage());
+            LOGGER.error("Error decrypting secrets", e);
             throw new SecretsChestCryptoException("Error decrypting retrieved secrets: " + e.getMessage());
         }
     }

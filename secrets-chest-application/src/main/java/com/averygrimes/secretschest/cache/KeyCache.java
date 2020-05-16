@@ -1,6 +1,7 @@
 package com.averygrimes.secretschest.cache;
 
-import com.averygrimes.axis.cache.CacheBase;
+
+import com.averygrimes.cache.CacheBase;
 
 /**
  * @author Avery Grimes-Farrow

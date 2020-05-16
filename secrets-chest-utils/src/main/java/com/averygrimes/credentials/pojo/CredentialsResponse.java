@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -25,5 +26,15 @@ public class CredentialsResponse {
     private String secretReference;
     private Map<String, String> secretsReferences;
     private String error;
+
+    public String getSecretAsString(){
+        return new String(this.data);
+    }
+
+    public Map<String, String> getSecretDataMapAsString(){
+        Map<String, String> secretsMap = new HashMap<>();
+        this.secretsDataMap.forEach((key, value) -> secretsMap.putIfAbsent(key, new String(value)));
+        return secretsMap;
+    }
 
 }

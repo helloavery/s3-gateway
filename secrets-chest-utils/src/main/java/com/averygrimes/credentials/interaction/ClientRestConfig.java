@@ -1,7 +1,6 @@
 package com.averygrimes.credentials.interaction;
 
 import com.averygrimes.servicediscovery.RestFeignClientBean;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -16,7 +15,6 @@ import javax.inject.Inject;
  */
 
 @Configuration("CredentialsClientRestConfig")
-@EnableAutoConfiguration
 public class ClientRestConfig {
 
     private Environment environment;

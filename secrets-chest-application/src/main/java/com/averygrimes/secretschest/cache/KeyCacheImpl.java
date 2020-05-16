@@ -1,7 +1,8 @@
 package com.averygrimes.secretschest.cache;
 
-import com.averygrimes.axis.cache.AbstractCache;
-import com.averygrimes.axis.cache.CacheObject;
+
+import com.averygrimes.cache.AbstractCache;
+import com.averygrimes.cache.CacheObject;
 import org.apache.commons.collections4.MapUtils;
 
 import javax.inject.Named;

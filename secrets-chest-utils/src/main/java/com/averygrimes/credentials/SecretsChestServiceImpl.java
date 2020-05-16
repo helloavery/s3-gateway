@@ -74,8 +74,8 @@ public class SecretsChestServiceImpl implements SecretsChestService {
                 if (uploadResponse != null) {
                     uploadResults.put(reference,  uploadResponse.getSecretReference());
                 }
+                countDownLatch.countDown();
             });
-            countDownLatch.countDown();
         });
         try{
             countDownLatch.await();
@@ -104,7 +104,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
         Response secretsChestRetrievalResponse = secretsChestClient.retrieveSecrets(keyReference);
         CredentialsResponse retrieveDataResponse = validateResponseAndReturnEntity(secretsChestRetrievalResponse, CredentialsResponse.class);
         stopwatch.stop();
-        LOGGER.info("Upload to S3 bucket complete, time took is {}", stopwatch.toString());
+        LOGGER.info("Retrieval to S3 bucket complete, time took is {}", stopwatch.toString());
         return retrieveDataResponse;
     }
 
@@ -132,7 +132,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
             LOGGER.warn("Thread has been interrupted");
         }
         stopwatch.stop();
-        LOGGER.info("Upload to S3 bucket complete, time took is {}", stopwatch.toString());
+        LOGGER.info("Retrieval to S3 bucket complete, time took is {}", stopwatch.toString());
         return retrieveDataResponse;
     }
 

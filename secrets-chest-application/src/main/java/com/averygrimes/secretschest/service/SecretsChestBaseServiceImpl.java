@@ -12,13 +12,18 @@ import com.amazonaws.auth.AWS4Signer;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.http.HttpMethodName;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.averygrimes.secretschest.cache.KeyCache;
 import com.averygrimes.secretschest.config.ProgramArguments;
 import com.averygrimes.secretschest.exceptions.AWSSignatureException;
 import com.averygrimes.secretschest.exceptions.SecretsChestServerException;
 import com.averygrimes.secretschest.interaction.AWSClient;
+import com.averygrimes.secretschest.pojo.S3OperationMethod;
 import com.averygrimes.secretschest.pojo.SecretsChestConstants;
 import com.averygrimes.secretschest.pojo.SecretsChestResponse;
+import com.averygrimes.secretschest.utils.SecretsChestCredUtils;
 import com.averygrimes.secretschest.utils.UUIDUtils;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -37,7 +42,16 @@ import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 @Service
 public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService {
@@ -47,8 +61,11 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
     private ProgramArguments programArguments;
     private CryptoService cryptoService;
     private AWSClient awsClient;
+    private AmazonS3 amazonS3;
     private KeyCache keyCache;
-
+    private ExecutorService executorService;
+    private SecretsChestCredUtils chestCredUtils;
+    private Lock lock;
     private String AWSS3APIEndpoint;
     private String AWSAPIGatewayStage;
     private String AWSS3DataBucket;
@@ -74,41 +91,60 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
         this.keyCache = keyCache;
     }
 
+    @Inject
+    public void setChestCredUtils(SecretsChestCredUtils chestCredUtils) {
+        this.chestCredUtils = chestCredUtils;
+    }
+
     @PostConstruct
     public void init(){
+        this.amazonS3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_2).withCredentials(iamCredentialsSetup()).build();
         this.AWSS3APIEndpoint = programArguments.getAWSS3APIEndpoint();
         this.AWSAPIGatewayStage = programArguments.getAWSAPIGatewayStage();
         this.AWSS3DataBucket = programArguments.getAWSS3DataBucket();
         this.AWSS3KeyBucket = programArguments.getAWSS3KeyBucket();
+        this.executorService = Executors.newFixedThreadPool(100);
+        this.lock = new ReentrantLock(true);
     }
 
     @Override
-    public SecretsChestResponse uploadAsset(byte[] dataToUpload, String requestId){
+    public SecretsChestResponse uploadAsset(byte[] dataToUpload, S3OperationMethod method, String requestId){
         SecretsChestResponse secretsChestResponse = new SecretsChestResponse();
         try {
-            Map<String, Object> encryptedDataMap = cryptoService.generateDataKeyAndEncryptData(dataToUpload);
-            SdkBytes encryptedKey = (SdkBytes) encryptedDataMap.get(SecretsChestConstants.ENCRYPTED_KEY_MAP_KEY);
-            byte[] encryptedData = (byte[]) encryptedDataMap.get(SecretsChestConstants.ENCRYPTED_DATA_MAP_KEY);
-
-            String bucketObjectReference = UUIDUtils.generateRandomId();
-
-            String hexEncodedData = Hex.encodeHexString(encryptedData);
-            String hexEncodedKey = Hex.encodeHexString(encryptedKey.asByteArray());
-
-            DefaultRequest<T> dataSignedRequest = createAWSSignature(AWSS3DataBucket, bucketObjectReference, HttpMethodName.PUT, hexEncodedData, requestId);
-            DefaultRequest<T> keySignedRequest = createAWSSignature(AWSS3KeyBucket, bucketObjectReference, HttpMethodName.PUT, hexEncodedKey, requestId);
-
-            sendUploadBucketObjectResponse(dataSignedRequest, hexEncodedData, AWSS3DataBucket, bucketObjectReference, requestId);
-            sendUploadBucketObjectResponse(keySignedRequest, hexEncodedKey, AWSS3KeyBucket, bucketObjectReference, requestId);
-
-            putEncryptedKeyInCache(bucketObjectReference, encryptedKey.asByteBuffer());
-
-            secretsChestResponse.setSecretReference(bucketObjectReference);
-            secretsChestResponse.setSuccessful(true);
-        }
-        catch (Exception e) {
-            LOGGER.error("Error uploading new secrets for bucket {} for requestId {}", "dataToUpload", requestId);
+            if(lock.tryLock(2100, TimeUnit.MILLISECONDS)){
+                CountDownLatch countDownLatch = new CountDownLatch(2);
+                ConcurrentHashMap<String, byte[]> encryptedDataMap = cryptoService.generateDataKeyAndEncryptData(dataToUpload);
+                String bucketObjectReference = UUIDUtils.generateRandomId();
+                encryptedDataMap.forEach((mapKey, encryptedData) ->{
+                    AtomicBoolean isApiGatewayRequest = new AtomicBoolean(method == S3OperationMethod.GATEWAY);
+                    String bucket = mapKey.equals(SecretsChestConstants.ENCRYPTED_KEY_MAP_KEY) ? AWSS3KeyBucket : AWSS3DataBucket;
+                    CompletableFuture<SecretsChestResponse> completableFuture = sendEncryptedUploadTasks(isApiGatewayRequest.get(), bucket, encryptedData, bucketObjectReference, requestId);
+                    completableFuture.whenComplete((uploadResponse, exception) ->{
+                        if(uploadResponse == null || exception != null){
+                            LOGGER.error("Exception occurred while uploading data to S3 bucket", exception);
+                            throw SecretsChestServerException.buildResponse("Error uploading secrets data for request id: " + requestId);
+                        }
+                        if(!uploadResponse.isSuccessful()){
+                            LOGGER.error("Operation uploading data to S3 bucket unsuccessful");
+                            throw SecretsChestServerException.buildResponse("Error uploading secrets data for request id: " + requestId);
+                        }
+                        countDownLatch.countDown();
+                    });
+                });
+                try{
+                    countDownLatch.await();
+                }
+                catch (InterruptedException e){
+                    LOGGER.warn("Thread has been interrupted");
+                }
+                secretsChestResponse.setSecretReference(bucketObjectReference);
+                secretsChestResponse.setSuccessful(true);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error uploading new secrets for bucket {} for requestId {}", "dataToUpload", requestId, e);
             throw SecretsChestServerException.buildResponse("Error uploading secrets data for request id: " + requestId);
+        }finally{
+            lock.unlock();
         }
         return secretsChestResponse;
     }
@@ -124,7 +160,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
             secretsChestResponse.setSuccessful(true);
         }
         catch (Exception e) {
-            LOGGER.error("Error uploading new secrets for bucket {} for requestId {}", "dataToUpload", requestId);
+            LOGGER.error("Error uploading new secrets for bucket {} for requestId {}", "dataToUpload", requestId, e);
             throw SecretsChestServerException.buildResponse("Error uploading secrets data for request id: " + requestId);
         }
         return secretsChestResponse;
@@ -143,7 +179,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
             secretsChestResponse.setSuccessful(true);
         }
         catch (Exception e) {
-            LOGGER.error("Error updating secrets for bucket {} for requestId {}", "dataToUpload", requestId);
+            LOGGER.error("Error updating secrets for bucket {} for requestId {}", "dataToUpload", requestId, e);
             throw SecretsChestServerException.buildResponse("Error updating secrets data for request id: " + requestId);
         }
         return secretsChestResponse;
@@ -153,27 +189,65 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
     public SecretsChestResponse retrieveAsset(String secretReference, String requestId){
         SecretsChestResponse secretsChestResponse = new SecretsChestResponse();
         try {
-            DefaultRequest<T> signedRequest = createAWSSignature(AWSS3DataBucket, secretReference, HttpMethodName.GET, null, requestId);
-            Response bucketObjectResponse = sendRetrieveBucketObjectResponse(signedRequest, AWSS3DataBucket, secretReference, requestId);
-            byte[] hexDecodedBucketObject = Hex.decodeHex(bucketObjectResponse.getEntity().toString());
-            SdkBytes encryptedKey = attemptToGetKeyFromCacheThenBucket(secretReference, requestId);
-            byte[] decryptedData = cryptoService.decryptData(hexDecodedBucketObject, encryptedKey.asByteBuffer());
-            secretsChestResponse.setData(decryptedData);
-            secretsChestResponse.setSuccessful(true);
-        }
-        catch(Exception e) {
-            LOGGER.error("Error fetching secrets for object reference {}", secretReference);
+            if(lock.tryLock(3500, TimeUnit.MILLISECONDS)){
+                DefaultRequest<T> signedRequest = createAWSSignature(AWSS3DataBucket, secretReference, HttpMethodName.GET, null, requestId);
+                Response bucketObjectResponse = sendRetrieveBucketObjectResponse(signedRequest, AWSS3DataBucket, secretReference, requestId);
+                byte[] hexDecodedBucketObject = Hex.decodeHex(bucketObjectResponse.getEntity().toString());
+                SdkBytes encryptedKey = attemptToGetKeyFromCacheThenBucket(secretReference, requestId);
+                byte[] decryptedData = cryptoService.decryptData(hexDecodedBucketObject, encryptedKey.asByteBuffer());
+                secretsChestResponse.setData(decryptedData);
+                secretsChestResponse.setSuccessful(true);
+            }
+        } catch(Exception e) {
+            LOGGER.error("Error fetching secrets for object reference {}", secretReference, e);
             throw SecretsChestServerException.buildResponse("Error fetching secrets for secret" + secretReference + " requestId: " + requestId);
+        }finally{
+            lock.unlock();
         }
         return secretsChestResponse;
     }
 
-    private void putEncryptedKeyInCache(String bucketObjectReference, ByteBuffer encryptedKey){
+    private CompletableFuture<SecretsChestResponse> sendEncryptedUploadTasks(boolean apiGatewayRequest, String bucket, byte[] dataToUpload, String bucketObjectReference, String requestId){
+        CompletableFuture<SecretsChestResponse> completableFuture = new CompletableFuture<>();
+        CompletableFuture.supplyAsync(() -> {
+            SecretsChestResponse secretsChestResponse = null;
+            try{
+                secretsChestResponse = new SecretsChestResponse();
+                String hexEncodedBytes = Hex.encodeHexString(dataToUpload);
+                if(bucket.equals(AWSS3KeyBucket)){
+                    if(apiGatewayRequest){
+                        DefaultRequest<T> keySignedRequest = createAWSSignature(AWSS3KeyBucket, bucketObjectReference, HttpMethodName.PUT, hexEncodedBytes, requestId);
+                        sendUploadBucketObjectResponse(keySignedRequest, hexEncodedBytes, AWSS3KeyBucket, bucketObjectReference, requestId);
+                    }else{
+                        amazonS3.putObject(AWSS3KeyBucket,bucketObjectReference, hexEncodedBytes);
+                    }
+                    putEncryptedKeyInCache(bucketObjectReference, dataToUpload);
+                    secretsChestResponse.setSuccessful(true);
+                }else if(bucket.equals(AWSS3DataBucket)){
+                    if(apiGatewayRequest){
+                        DefaultRequest<T> dataSignedRequest = createAWSSignature(AWSS3DataBucket, bucketObjectReference, HttpMethodName.PUT, hexEncodedBytes, requestId);
+                        sendUploadBucketObjectResponse(dataSignedRequest, hexEncodedBytes, AWSS3DataBucket, bucketObjectReference, requestId);
+                    }else{
+                        amazonS3.putObject(AWSS3KeyBucket,bucketObjectReference, hexEncodedBytes);
+                    }
+                    secretsChestResponse.setSuccessful(true);
+                }
+                completableFuture.complete(secretsChestResponse);
+            }
+            catch(Exception e){
+                LOGGER.error("Error completing upload data task", e);
+            }
+            return secretsChestResponse;
+        }, executorService).applyToEither(chestCredUtils.timeoutRetrieveInvocationResponse(completableFuture, 10, TimeUnit.SECONDS), Function.identity());
+        return completableFuture;
+    }
+
+    private void putEncryptedKeyInCache(String bucketObjectReference, byte[] encryptedKey){
         try{
-            keyCache.put(bucketObjectReference, encryptedKey.array());
+            keyCache.put(bucketObjectReference, encryptedKey);
         }
         catch(Exception e){
-            LOGGER.warn("Error putting encrypted key in key cache: {}", e.getMessage());
+            LOGGER.warn("Error putting encrypted key in key cache", e);
         }
     }
 
@@ -190,7 +264,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
                 return SdkBytes.fromByteArray(hexDecodedKey);
             }
             catch(DecoderException e){
-                LOGGER.error("Error decoding hex encrypted key for request id {}", requestId);
+                LOGGER.error("Error decoding hex encrypted key for request id {}", requestId, e);
                 throw SecretsChestServerException.buildResponse("Error decoding hex encrypted key for request id: " + requestId);
             }
         }
@@ -206,7 +280,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
             validateResponse(response);
         }
         catch(Exception e){
-            LOGGER.error("Error uploading object to bucket {} for request id {}, caught error is {}", bucket, requestId, e.getMessage());
+            LOGGER.error("Error uploading object to bucket {} for request id {}", bucket, requestId, e);
             LOGGER.error(((WebApplicationException) e).getResponse().getEntity().toString());
         }
     }
@@ -220,7 +294,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
             validateResponse(response);
         }
         catch(Exception e){
-            LOGGER.error("Error uploading object to bucket {} for request id {}, caught error is {}", bucket, requestId, e.getMessage());
+            LOGGER.error("Error uploading object to bucket {} for request id {}", bucket, requestId, e);
             LOGGER.error(((WebApplicationException) e).getResponse().getEntity().toString());
         }
         return response;
@@ -256,7 +330,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
             return defaultRequest;
         }
         catch(Exception e){
-            LOGGER.error("Error generating AWS Signature for bucket {} and bucketObject {}", bucket, bucketObject);
+            LOGGER.error("Error generating AWS Signature for bucket {} and bucketObject {}", bucket, bucketObject, e);
             throw new AWSSignatureException("Error generating AWS Signature", e);
         }
     }

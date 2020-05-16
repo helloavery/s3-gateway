@@ -3,7 +3,7 @@ package com.averygrimes.secretschest.service;
 import software.amazon.awssdk.core.SdkBytes;
 
 import java.nio.ByteBuffer;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Avery Grimes-Farrow
@@ -14,7 +14,7 @@ import java.util.Map;
 
 public interface CryptoService {
 
-    Map<String, Object> generateDataKeyAndEncryptData(byte[] dataToUpload);
+    ConcurrentHashMap<String, byte[]> generateDataKeyAndEncryptData(byte[] dataToUpload);
 
     byte[] decryptData(byte[] encryptedData, ByteBuffer encryptedKey);
 
