@@ -1,5 +1,7 @@
 package com.averygrimes.credentials.interaction;
 
+import com.averygrimes.credentials.SafeUtils;
+import com.averygrimes.credentials.SecretsChestUtilsException;
 import com.averygrimes.servicediscovery.RestFeignClientBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,12 +38,12 @@ public class ClientRestConfig {
     }
 
     private String getS3GatewayEnvironment(){
-        if(environment.getProperty(DISCOVERY_PROPERTY).equalsIgnoreCase("QA")){
+        if(SafeUtils.safe(environment.getProperty(DISCOVERY_PROPERTY)).equalsIgnoreCase("QA")){
             return "QA";
         }
-        else if(environment.getProperty(DISCOVERY_PROPERTY).equalsIgnoreCase("PROD")){
+        else if(SafeUtils.safe(environment.getProperty(DISCOVERY_PROPERTY)).equalsIgnoreCase("PROD")){
             return "PROD";
         }
-        return null;
+        throw new SecretsChestUtilsException("Missing required 'discovery.environment' property. Please make sure you have all the necessary properties");
     }
 }
