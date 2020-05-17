@@ -36,6 +36,7 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -111,7 +112,7 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
     public SecretsChestResponse uploadAsset(byte[] dataToUpload, S3OperationMethod method, String requestId){
         SecretsChestResponse secretsChestResponse = new SecretsChestResponse();
         try {
-            if(lock.tryLock(2100, TimeUnit.MILLISECONDS)){
+            if(lock.tryLock(1500, TimeUnit.MILLISECONDS)){
                 CountDownLatch countDownLatch = new CountDownLatch(2);
                 ConcurrentHashMap<String, byte[]> encryptedDataMap = cryptoService.generateDataKeyAndEncryptData(dataToUpload);
                 String bucketObjectReference = UUIDUtils.generateRandomId();
@@ -346,5 +347,10 @@ public class SecretsChestBaseServiceImpl <T> implements SecretsChestBaseService 
             LOGGER.error("Error generating AWS Signature for request id {}", requestId);
             throw SecretsChestServerException.buildResponse("Error generating AWS Signature for request id: " + requestId);
         }
+    }
+
+    @PreDestroy
+    public void preDestroy(){
+        executorService.shutdown();
     }
 }

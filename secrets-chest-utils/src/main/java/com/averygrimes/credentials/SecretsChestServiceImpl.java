@@ -52,17 +52,17 @@ public class SecretsChestServiceImpl implements SecretsChestService {
     }
 
     public CredentialsResponse sendSecrets(byte[] dataToUpload){
-        LOGGER.info("Starting Uploading Secrets Job");
+        LOGGER.info("Starting Uploading data to Secrets Chest Job");
         Stopwatch stopwatch = Stopwatch.createStarted();
         Response secretsChestUploadResponse = secretsChestClient.uploadSecrets(dataToUpload);
         CredentialsResponse uploadDataResponse = validateResponseAndReturnEntity(secretsChestUploadResponse, CredentialsResponse.class);
         stopwatch.stop();
-        LOGGER.info("Upload to S3 bucket complete, time took is {}", stopwatch.toString());
+        LOGGER.info("Upload data to Secrets Chest complete, time took is {}", stopwatch.toString());
         return uploadDataResponse;
     }
 
     public CredentialsResponse sendMultipleSecrets(Map<String, byte[]> listOfDataToUpload){
-        LOGGER.info("Starting Uploading Secrets Job");
+        LOGGER.info("Starting Uploading multiple data to Secrets Chest Job");
         Stopwatch stopwatch = Stopwatch.createStarted();
         CountDownLatch countDownLatch = new CountDownLatch(listOfDataToUpload.size());
         CredentialsResponse credentialsResponse = new CredentialsResponse();
@@ -84,7 +84,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
             LOGGER.warn("Thread has been interrupted");
         }
         stopwatch.stop();
-        LOGGER.info("Upload to S3 bucket complete, time took is {}", stopwatch.toString());
+        LOGGER.info("Upload data to Secrets Chest complete, time took is {}", stopwatch.toString());
         return credentialsResponse;
     }
 
@@ -94,7 +94,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
         Response secretsChestReplaceResponse = secretsChestClient.updateSecrets(keyReference, dataToUpload);
         CredentialsResponse uploadDataResponse = validateResponseAndReturnEntity(secretsChestReplaceResponse, CredentialsResponse.class);
         stopwatch.stop();
-        LOGGER.info("Upload to S3 bucket complete, time took is {}", stopwatch.toString());
+        LOGGER.info("Upload data to Secrets Chest complete, time took is {}", stopwatch.toString());
         return uploadDataResponse;
     }
 
@@ -104,12 +104,12 @@ public class SecretsChestServiceImpl implements SecretsChestService {
         Response secretsChestRetrievalResponse = secretsChestClient.retrieveSecrets(keyReference);
         CredentialsResponse retrieveDataResponse = validateResponseAndReturnEntity(secretsChestRetrievalResponse, CredentialsResponse.class);
         stopwatch.stop();
-        LOGGER.info("Retrieval to S3 bucket complete, time took is {}", stopwatch.toString());
+        LOGGER.info("Retrieval to fetch data from Secrets Chest complete, time took is {}", stopwatch.toString());
         return retrieveDataResponse;
     }
 
     public CredentialsResponse retrieveMultipleSecrets(List<String> keyReferences){
-        LOGGER.info("Starting Retrieving Secrets Job");
+        LOGGER.info("Starting Retrieving multiple data from Secrets Chest Job");
         Stopwatch stopwatch = Stopwatch.createStarted();
         final CountDownLatch countDownLatch = new CountDownLatch(keyReferences.size());
         CredentialsResponse retrieveDataResponse = new CredentialsResponse();
@@ -132,7 +132,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
             LOGGER.warn("Thread has been interrupted");
         }
         stopwatch.stop();
-        LOGGER.info("Retrieval to S3 bucket complete, time took is {}", stopwatch.toString());
+        LOGGER.info("Retrieval to fetch data from Secrets Chest complete, time took is {}", stopwatch.toString());
         return retrieveDataResponse;
     }
 
@@ -152,7 +152,8 @@ public class SecretsChestServiceImpl implements SecretsChestService {
                 }
             }
             catch(Exception e){
-
+                LOGGER.error("Error occurred while completing {}", taskType, e);
+                throw new SecretsChestUtilsException("Error occurred while completing " + taskType, e);
             }
             return credentialsResponse;
         }, executorService).applyToEither(credentialsUtils.timeoutRetrieveInvocationResponse(completableFuture, 15, TimeUnit.SECONDS), Function.identity());
@@ -162,10 +163,8 @@ public class SecretsChestServiceImpl implements SecretsChestService {
 
     private <T> T validateResponseAndReturnEntity(Response response, Class<T> entityType){
         if(response == null){
-
-        }
-        if(response.getStatus() == 204){
-
+            LOGGER.error("Secrets Chest response came back as null");
+            throw new SecretsChestUtilsException("Secrets Chest response came back as null");
         }
         return response.readEntity(entityType);
     }
