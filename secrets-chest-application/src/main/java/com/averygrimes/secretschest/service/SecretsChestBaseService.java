@@ -1,7 +1,6 @@
 package com.averygrimes.secretschest.service;
 
 
-import com.averygrimes.secretschest.pojo.S3OperationMethod;
 import com.averygrimes.secretschest.pojo.SecretsChestResponse;
 
 /**
@@ -12,7 +11,7 @@ import com.averygrimes.secretschest.pojo.SecretsChestResponse;
 
 public interface SecretsChestBaseService {
 
-    SecretsChestResponse uploadAsset(byte[] dataToUpload, S3OperationMethod method, String requestId);
+    SecretsChestResponse uploadAsset(byte[] dataToUpload, String requestId);
 
     SecretsChestResponse uploadPlainTextAsset(String dataToUpload, String requestId);
 

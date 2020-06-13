@@ -4,6 +4,7 @@ import com.averygrimes.secretschest.interaction.HealthCheckResource;
 import com.averygrimes.secretschest.interaction.SecretsChestResource;
 import com.averygrimes.servicediscovery.registration.ServiceDiscoveryRegister;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.springframework.context.annotation.Profile;
 
 import javax.inject.Named;
 import javax.ws.rs.ApplicationPath;
@@ -17,6 +18,7 @@ import javax.ws.rs.ApplicationPath;
 @Named
 @ApplicationPath("/rest/v1")
 @ServiceDiscoveryRegister(service = "secrets-chest-service", version = "1.0.0", healthCheckPath = "/health")
+@Profile("!test")
 public class JerseyConfig extends ResourceConfig {
 
     public JerseyConfig(){

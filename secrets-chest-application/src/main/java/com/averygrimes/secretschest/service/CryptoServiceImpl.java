@@ -32,6 +32,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.inject.Inject;
 import java.nio.ByteBuffer;
 import java.security.Security;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -63,7 +64,7 @@ public class CryptoServiceImpl implements CryptoService{
     }
 
     @Override
-    public ConcurrentHashMap<String, byte[]> generateDataKeyAndEncryptData(byte[] dataToUpload){
+    public Map<String, byte[]> generateDataKeyAndEncryptData(byte[] dataToUpload){
         try{
             GenerateDataKeyResponse dataKeyResult = generateDataKey();
             SdkBytes plaintextKey = dataKeyResult.plaintext();
@@ -71,7 +72,7 @@ public class CryptoServiceImpl implements CryptoService{
 
             SecretKey plaintextSecretKey = getExistingSecretKey(plaintextKey.asByteArray());
             byte[] encryptedData = encryptData(dataToUpload, plaintextSecretKey);
-            ConcurrentHashMap<String, byte[]> encryptedDataAndKey = new ConcurrentHashMap<>();
+            Map<String, byte[]> encryptedDataAndKey = new ConcurrentHashMap<>();
             encryptedDataAndKey.put(SecretsChestConstants.ENCRYPTED_DATA_MAP_KEY, encryptedData);
             encryptedDataAndKey.put(SecretsChestConstants.ENCRYPTED_KEY_MAP_KEY, encryptedKey.asByteArray());
             return encryptedDataAndKey;

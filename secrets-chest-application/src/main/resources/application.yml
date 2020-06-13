@@ -6,3 +6,5 @@ logging:
 server:
   error:
     include-stacktrace: always
+
+server.servlet.context-path: /secrets-chest-service
