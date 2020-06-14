@@ -199,14 +199,11 @@ public class SecretsChestBaseServiceImpl implements SecretsChestBaseService {
             try{
                 secretsChestResponse = new SecretsChestResponse();
                 String hexEncodedBytes = Hex.encodeHexString(dataToUpload);
+                sendUploadBucketObjectResponse(hexEncodedBytes, bucket, bucketObjectReference, requestId);
                 if(bucket.equals(AWSS3KeyBucket)){
-                    amazonS3.putObject(AWSS3KeyBucket,bucketObjectReference, hexEncodedBytes);
                     putEncryptedKeyInCache(bucketObjectReference, dataToUpload);
-                    secretsChestResponse.setSuccessful(true);
-                }else if(bucket.equals(AWSS3DataBucket)){
-                    amazonS3.putObject(AWSS3DataBucket,bucketObjectReference, hexEncodedBytes);
-                    secretsChestResponse.setSuccessful(true);
                 }
+                secretsChestResponse.setSuccessful(true);
                 completableFuture.complete(secretsChestResponse);
             }
             catch(Exception e){
@@ -248,7 +245,7 @@ public class SecretsChestBaseServiceImpl implements SecretsChestBaseService {
     private void sendUploadBucketObjectResponse(String dataToUpload, String bucket, String bucketObjectReference, String requestId){
         LOGGER.info("Uploading data to bucket {} for requestId {}", bucket, requestId);
         try{
-            amazonS3.putObject(AWSS3KeyBucket,bucketObjectReference, dataToUpload);
+            amazonS3.putObject(bucket,bucketObjectReference, dataToUpload);
         }
         catch(Exception e){
             LOGGER.error("Error uploading object to bucket {} for request id {}", bucket, requestId, e);

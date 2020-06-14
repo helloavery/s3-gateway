@@ -1,0 +1,165 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.averygrimes",
+    "module": "secrets-chest-utils",
+    "version": "0.0.1-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "6.5",
+      "buildId": "4f7a2x6sjfgqfjg3qatesa234q"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 11,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "secrets-chest-utils-0.0.1-SNAPSHOT.jar",
+          "url": "secrets-chest-utils-0.0.1-SNAPSHOT.jar",
+          "size": 16394,
+          "sha512": "435347f84e8123f0a38c7d7f95d2238ab9fdaa779fbdaceb362ce57580ac4452d4f4599a9b1493d5387916164b9436e827ae76177ea1233740395981f93430f6",
+          "sha256": "ec6017b0b72985e7170e99c8de962fa720527a33a2872c4e66c6eebcd5c01500",
+          "sha1": "eb5a22bb0b00215741a7038cf7aa1467868df8e2",
+          "md5": "47cc76d81548134eb4cfa23698c0d35d"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 11,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "software.amazon.awssdk",
+          "module": "bom",
+          "version": {
+            "requires": "2.13.18"
+          },
+          "attributes": {
+            "org.gradle.category": "platform"
+          },
+          "endorseStrictVersions": true
+        },
+        {
+          "group": "com.amazonaws",
+          "module": "aws-java-sdk-bom",
+          "version": {
+            "requires": "1.11.784"
+          },
+          "attributes": {
+            "org.gradle.category": "platform"
+          },
+          "endorseStrictVersions": true
+        },
+        {
+          "group": "com.averygrimes",
+          "module": "common-cache",
+          "version": {
+            "requires": "1.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "com.averygrimes",
+          "module": "service-discovery",
+          "version": {
+            "requires": "1.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-web",
+          "version": {
+            "requires": "2.2.0.RELEASE"
+          }
+        },
+        {
+          "group": "org.bouncycastle",
+          "module": "bcprov-jdk15on",
+          "version": {
+            "requires": "1.60"
+          }
+        },
+        {
+          "group": "org.bouncycastle",
+          "module": "bcpkix-jdk15on",
+          "version": {
+            "requires": "1.60"
+          }
+        },
+        {
+          "group": "software.amazon.awssdk",
+          "module": "s3"
+        },
+        {
+          "group": "com.amazonaws",
+          "module": "aws-java-sdk-s3"
+        },
+        {
+          "group": "com.amazonaws",
+          "module": "aws-java-sdk-dynamodb"
+        },
+        {
+          "group": "software.amazon.awssdk",
+          "module": "apigateway"
+        },
+        {
+          "group": "software.amazon.awssdk",
+          "module": "kms"
+        },
+        {
+          "group": "software.amazon.awssdk",
+          "module": "sts"
+        },
+        {
+          "group": "com.amazonaws",
+          "module": "aws-encryption-sdk-java",
+          "version": {
+            "requires": "1.6.1"
+          }
+        },
+        {
+          "group": "org.ehcache",
+          "module": "ehcache",
+          "version": {
+            "requires": "3.8.1"
+          }
+        },
+        {
+          "group": "javax.enterprise",
+          "module": "cdi-api",
+          "version": {
+            "requires": "2.0.SP1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "secrets-chest-utils-0.0.1-SNAPSHOT.jar",
+          "url": "secrets-chest-utils-0.0.1-SNAPSHOT.jar",
+          "size": 16394,
+          "sha512": "435347f84e8123f0a38c7d7f95d2238ab9fdaa779fbdaceb362ce57580ac4452d4f4599a9b1493d5387916164b9436e827ae76177ea1233740395981f93430f6",
+          "sha256": "ec6017b0b72985e7170e99c8de962fa720527a33a2872c4e66c6eebcd5c01500",
+          "sha1": "eb5a22bb0b00215741a7038cf7aa1467868df8e2",
+          "md5": "47cc76d81548134eb4cfa23698c0d35d"
+        }
+      ]
+    }
+  ]
+}

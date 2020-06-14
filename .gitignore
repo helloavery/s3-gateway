@@ -29,5 +29,5 @@ logs/
 *.log
 
 /.gradle
-/gradle
 /.mvn
+.mvn

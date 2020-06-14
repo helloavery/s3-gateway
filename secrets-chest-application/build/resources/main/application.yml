@@ -1,0 +1,10 @@
+logging:
+  level:
+    com.averygrimes.secretschest: INFO
+  file.path: logs/secrets-chest-log
+
+server:
+  error:
+    include-stacktrace: always
+
+server.servlet.context-path: /secrets-chest-service

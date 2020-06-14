@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.averygrimes.credentials.CredentialsConfig,\
+com.averygrimes.credentials.interaction.ClientRestConfig
