@@ -29,33 +29,21 @@ subprojects {
         awsSdkVersion = '1.11.784'
         bouncyCastleVersion = '1.60'
         ecacheVersion = '3.8.1'
+        commonsIoVersion = '2.6'
         jaxRsVersion = '2.29.1'
         lombokVersion = '1.18.10'
-        springBootVersion = '2.2.0.RELEASE'
+        springBootVersion = '2.3.1.RELEASE'
     }
 
 
     dependencies {
-        implementation platform("software.amazon.awssdk:bom:${awsSoftwareSdkVersion}")
-        implementation platform("com.amazonaws:aws-java-sdk-bom:${awsSdkVersion}")
 
-        implementation "com.averygrimes:common-cache:${averygrimesCommonVersion}"
-        implementation "com.averygrimes:service-discovery:${averygrimesServiceDiscoveryVersion}"
+        implementation "commons-io:commons-io:${commonsIoVersion}"
 
-        implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+        implementation 'org.springframework.boot:spring-boot-starter-webflux:2.3.1.RELEASE'
+        implementation 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
 
-        implementation "org.bouncycastle:bcprov-jdk15on:${bouncyCastleVersion}"
-        implementation "org.bouncycastle:bcpkix-jdk15on:${bouncyCastleVersion}"
-
-        implementation "software.amazon.awssdk:s3"
-        implementation "com.amazonaws:aws-java-sdk-s3"
-        implementation "com.amazonaws:aws-java-sdk-dynamodb"
-        implementation "software.amazon.awssdk:apigateway"
-        implementation "software.amazon.awssdk:kms"
-        implementation "software.amazon.awssdk:sts"
-        implementation "com.amazonaws:aws-encryption-sdk-java:${awsEncryptionVersion}"
-
-        implementation "org.ehcache:ehcache:${ecacheVersion}"
+        implementation 'com.google.guava:guava:29.0-jre'
 
         compileOnly "org.glassfish.jersey.bundles:jaxrs-ri:${jaxRsVersion}"
 

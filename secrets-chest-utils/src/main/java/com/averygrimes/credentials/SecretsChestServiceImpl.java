@@ -6,12 +6,11 @@ import com.averygrimes.credentials.pojo.TaskType;
 import com.google.common.base.Stopwatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Service;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.inject.Inject;
-import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -28,33 +27,23 @@ import java.util.function.Function;
  * https://github.com/helloavery
  */
 
-@Service
 public class SecretsChestServiceImpl implements SecretsChestService {
 
     private static final Logger LOGGER = LogManager.getLogger(SecretsChestServiceImpl.class);
-    private SecretsChestClient secretsChestClient;
-    private CredentialsUtils credentialsUtils;
-    private ExecutorService executorService;
+    private final SecretsChestClient secretsChestClient;
+    private final CredentialsUtils credentialsUtils;
+    private final ExecutorService executorService;
 
-    @Inject
-    public void setSecretsChestClient(SecretsChestClient secretsChestClient) {
-        this.secretsChestClient = secretsChestClient;
-    }
-
-    @Inject
-    public void setCredentialsUtils(CredentialsUtils credentialsUtils) {
-        this.credentialsUtils = credentialsUtils;
-    }
-
-    @PostConstruct
-    public void init(){
+    public SecretsChestServiceImpl() {
+        secretsChestClient = new SecretsChestClient();
+        credentialsUtils = new CredentialsUtils();
         executorService = Executors.newFixedThreadPool(50);
     }
 
     public CredentialsResponse sendSecrets(byte[] dataToUpload){
         LOGGER.info("Starting Uploading data to Secrets Chest Job");
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Response secretsChestUploadResponse = secretsChestClient.uploadSecrets(dataToUpload);
+        ClientResponse secretsChestUploadResponse = secretsChestClient.uploadSecrets(dataToUpload);
         CredentialsResponse uploadDataResponse = validateResponseAndReturnEntity(secretsChestUploadResponse, CredentialsResponse.class);
         stopwatch.stop();
         LOGGER.info("Upload data to Secrets Chest complete, time took is {}", stopwatch.toString());
@@ -72,7 +61,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
             CompletableFuture<CredentialsResponse> completableFuture = sendTaskToSecretsChest(TaskType.UPLOAD, dataToUpload);
             completableFuture.whenComplete((uploadResponse, exception) -> {
                 if (uploadResponse != null) {
-                    uploadResults.put(reference,  uploadResponse.getSecretReference());
+                    uploadResults.put(reference, uploadResponse.getSecretReference());
                 }
                 countDownLatch.countDown();
             });
@@ -91,7 +80,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
     public CredentialsResponse updateSecrets(byte[] dataToUpload, String keyReference){
         LOGGER.info("Starting Replacing Secrets Job");
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Response secretsChestReplaceResponse = secretsChestClient.updateSecrets(keyReference, dataToUpload);
+        ClientResponse secretsChestReplaceResponse = secretsChestClient.updateSecrets(keyReference, dataToUpload);
         CredentialsResponse uploadDataResponse = validateResponseAndReturnEntity(secretsChestReplaceResponse, CredentialsResponse.class);
         stopwatch.stop();
         LOGGER.info("Upload data to Secrets Chest complete, time took is {}", stopwatch.toString());
@@ -101,7 +90,7 @@ public class SecretsChestServiceImpl implements SecretsChestService {
     public CredentialsResponse retrieveSecrets(String keyReference){
         LOGGER.info("Starting Retrieving Secrets Job");
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Response secretsChestRetrievalResponse = secretsChestClient.retrieveSecrets(keyReference);
+        ClientResponse secretsChestRetrievalResponse = secretsChestClient.retrieveSecrets(keyReference);
         CredentialsResponse retrieveDataResponse = validateResponseAndReturnEntity(secretsChestRetrievalResponse, CredentialsResponse.class);
         stopwatch.stop();
         LOGGER.info("Retrieval to fetch data from Secrets Chest complete, time took is {}", stopwatch.toString());
@@ -142,11 +131,11 @@ public class SecretsChestServiceImpl implements SecretsChestService {
             CredentialsResponse credentialsResponse = null;
             try{
                 if(taskType == TaskType.RETRIEVAL){
-                    Response secretsChestRetrievalResponse = secretsChestClient.retrieveSecrets((String) dataToAction);
+                    ClientResponse secretsChestRetrievalResponse = secretsChestClient.retrieveSecrets((String) dataToAction);
                     credentialsResponse = validateResponseAndReturnEntity(secretsChestRetrievalResponse, CredentialsResponse.class);
                     completableFuture.complete(credentialsResponse);
                 }else if(taskType == TaskType.UPLOAD){
-                    Response secretsChestUploadResponse = secretsChestClient.uploadSecrets((byte[]) dataToAction);
+                    ClientResponse secretsChestUploadResponse = secretsChestClient.uploadSecrets((byte[]) dataToAction);
                     credentialsResponse = validateResponseAndReturnEntity(secretsChestUploadResponse, CredentialsResponse.class);
                     completableFuture.complete(credentialsResponse);
                 }
@@ -161,12 +150,22 @@ public class SecretsChestServiceImpl implements SecretsChestService {
     }
 
 
-    private <T> T validateResponseAndReturnEntity(Response response, Class<T> entityType){
+    private <T> T validateResponseAndReturnEntity(ClientResponse response, Class<T> entityType){
         if(response == null){
             LOGGER.error("Secrets Chest response came back as null");
             throw new SecretsChestUtilsException("Secrets Chest response came back as null");
         }
-        return response.readEntity(entityType);
+        if(response.rawStatusCode() != 200){
+            LOGGER.error("Secrets Chest response came back as non 200");
+            throw new SecretsChestUtilsException("Secrets Chest response came back as non 200");
+        }
+        Mono<ResponseEntity<T>> responseEntity = response.toEntity(entityType);
+        ResponseEntity<T> responseEntityBlock = responseEntity.block();
+        if(responseEntityBlock == null){
+            LOGGER.error("Secrets Chest response came back as null");
+            throw new SecretsChestUtilsException("Secrets Chest response came back as null");
+        }
+        return responseEntityBlock.getBody();
     }
 
     @PreDestroy

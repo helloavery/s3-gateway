@@ -2,8 +2,6 @@ package com.averygrimes.credentials;
 
 import com.averygrimes.credentials.pojo.CredentialsResponse;
 
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.util.List;
 import java.util.Map;
 
@@ -13,14 +11,12 @@ import java.util.Map;
  * https://github.com/helloavery
  */
 
-@Named
 public class SecretsChestUtils {
 
-    private SecretsChestService secretsChestService;
+    private final SecretsChestService secretsChestService;
 
-    @Inject
-    public void setSecretsChestService(SecretsChestService secretsChestService) {
-        this.secretsChestService = secretsChestService;
+    public SecretsChestUtils() {
+        this.secretsChestService = new SecretsChestServiceImpl();
     }
 
     public CredentialsResponse getApplicationSecret(String secretReference){

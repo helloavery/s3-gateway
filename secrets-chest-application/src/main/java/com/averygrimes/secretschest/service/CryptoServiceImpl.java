@@ -78,8 +78,8 @@ public class CryptoServiceImpl implements CryptoService{
             return encryptedDataAndKey;
         }
         catch(Exception e){
-            LOGGER.error("Error decrypting secrets to be uploaded", e);
-            throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded", e);
+            LOGGER.error("Error encrypting secrets to be uploaded", e);
+            throw new SecretsChestCryptoException("Error encrypting secrets to be uploaded", e);
         }
     }
 
@@ -91,8 +91,8 @@ public class CryptoServiceImpl implements CryptoService{
             return encryptData(dataToUpload, plaintextSecretKey);
         }
         catch(Exception e){
-            LOGGER.error("Error decrypting secrets to be uploaded", e);
-            throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded", e);
+            LOGGER.error("Error encrypting secrets to be uploaded", e);
+            throw new SecretsChestCryptoException("Error encrypting secrets to be uploaded", e);
         }
     }
 
@@ -104,8 +104,8 @@ public class CryptoServiceImpl implements CryptoService{
             return decryptData(encryptedData, plaintextSecretKey);
         }
         catch(Exception e){
-            LOGGER.error("Error decrypting secrets to be uploaded", e);
-            throw new SecretsChestCryptoException("Error decrypting secrets to be uploaded: " + e.getMessage());
+            LOGGER.error("Error decrypting secrets", e);
+            throw new SecretsChestCryptoException("Error decrypting secrets: " + e.getMessage());
         }
     }
 

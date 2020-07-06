@@ -1,6 +1,7 @@
 /target/
 */target/
 !.mvn/wrapper/maven-wrapper.jar
+*/build
 
 ### STS ###
 .apt_generated
@@ -30,4 +31,4 @@ logs/
 
 /.gradle
 /.mvn
-.mvn
+mvnw*
